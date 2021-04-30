@@ -7,14 +7,14 @@
 " Sane, Lightweight, Aesthetic
 "
 "    --Erik S. V. Jansson--
-" some modifications made by Connor Cummings
+"
 
 " Initialization: {
     set nocompatible " Enable features which aren't compatible with Vi.
     filetype off " Required by Vundle before setting the runtime paths.
 
-    set rtp+=~/.vim_bundle/Vundle.vim " Specify the Vim runtime path...
-    call vundle#begin('~/.vim_bundle') " The package install directory.
+    set rtp+=~/.vim/bundle/Vundle.vim " Specify the Vim runtime path...
+    call vundle#begin('~/.vim/bundle') " The package install directory.
     Plugin 'VundleVim/Vundle.vim' " Useful if Vundle itself has update.
 " }
 
@@ -25,24 +25,31 @@
         Plugin 'tpope/vim-surround' " Change (){}<>'' in a snap.
         Plugin 'godlygeek/tabular' " Easy automatic tabulations.
         Plugin 'scrooloose/nerdtree' " Better than NetRw, maybe.
+        Plugin 'majutsushi/tagbar' " Nice to get a code topview.
         Plugin 'tpope/vim-fugitive' " Probably best Git wrapper.
         Plugin 'tmhedberg/matchit' " The '%' now matches more k?
         Plugin 'mileszs/ack.vim' " Forget IDE searches gtg fast!
         Plugin 'sjl/gundo.vim' " Why only have linear undo tree?
         Plugin 'ajh17/VimCompletesMe' " Standardized auto-compl.
         Plugin 'tpope/vim-dispatch' " When launching async jobs.
-        Plugin 'dbaileychess/vim-screeps' "screeps syntax highlighting
         " SuperTab vs VimCompletesMe: while the latter has fewer
         " features, it also has significantly less code/bloat...
         " However, I still wonder if the trade-offs is worth it.
     " }
 
     " Cosmetic: {
-        Plugin 'itchyny/lightline.vim' " For lightweight tbline.
-        Plugin 'morhetz/gruvbox' " The most amazing colorscheme.
+        Plugin 'vim-airline/vim-airline'
+        Plugin 'vim-airline/vim-airline-themes'
+"        let g:airline#extensions#tabline#enabled = 0
+        let g:airline_theme='ayu_dark'
+        "Plugin 'morhetz/gruvbox' " The most amazing colorscheme.
+        set termguicolors
+        Plugin 'ayu-theme/ayu-vim'
+        let ayucolor="dark"
     "}
 
-    " Syntaxes: {
+    " Language: {
+        Plugin 'beyondmarc/hlsl.vim' " Integrate HLSL highlight.
         Plugin 'CaffeineViking/vim-glsl' " Add support for GLSL.
         Plugin 'kbenzie/vim-spirv.git' " SPIRV syntax highlight.
     "}
@@ -54,6 +61,7 @@
 " }
 
 " General: {
+    set viminfo+=n~/.viminfo " Windows wants to use _viminfo >:(
     set autowrite " Write automatically when :make, :next etc...
     set autoread " Reload file when it has been changed externally.
     set nobackup " No need for .bkp files when version control exist.
@@ -111,8 +119,8 @@
     set ffs=unix,dos,mac " Prioritize unix as the standard file type.
     set encoding=utf-8 " Vim can now work with a whole bunch more characters (powerline too).
     set scrolloff=8 " The screen will only scroll when the cursor is 8 characters from the top/bottom.
-"    set foldmethod=indent " Pressing zc will close a fold at the current indent while zo will open one.
-    set foldopen+=jump " Additionally, open folds when there is a direct jump to the location.
+  "  set foldmethod=indent " Pressing zc will close a fold at the current indent while zo will open one.
+  "  set foldopen+=jump " Additionally, open folds when there is a direct jump to the location.
 
     set wildmenu " Enable the 'autocomplete' menu when in command mode (':').
     set cursorline " For easier cursor spotting. Completely optional though (but so is bathing).
@@ -123,48 +131,49 @@
     set showmatch " Will highlight matching brackets.
     set mat=2 " How long the highlight will last.
     set number " Show line numbers on left side.
-    set norelativenumber
+   " set relativenumber " Enables the user to easily see the relative distance between cursor and target line.
     set ttyfast " Will send characters over a terminal connection faster. We do have fast connections after all.
     set ruler " Always show current cursor position, which might be needed for the character column location.
     set hidden " Abandon buffer when closed, which is usually what we want to do in this case.
-
     syntax on " The most important feature when coding. Vim please bless us with this option right now!.
     set laststatus=2 " Always have a status line, this is required in order for Lightline to work correctly.
     set noshowmode " Disables standard -INSERT-, -NORMAL-, etc... Lightline will provide a better looking one for us.
     set t_Co=256 " This will 'force' terminals to use 256 colors, enabling Lightline and the colorscheme to look correct.
     set background=dark " Cool programmers only use dark themes. It's good for your eyes man, really nice!
-    silent! colorscheme gruvbox " I love this theme. Big kudos to the developer of this theme.
+    set showtabline=1
+"    silent! colorscheme gruvbox  I love this theme. Big kudos to the developer of this theme.
+    colorscheme ayu
 
-    " LightLine Components: {
-        function! LightLineModified()
-            if &modified
-                return "+"
-            else
-                return ""
-            endif
-        endfunction
-        function! LightLineReadonly()
-            if &readonly
-                return ""
-            else
-                return ""
-            endif
-        endfunction
-        function! LightLineFugitive()
-            if exists("*fugitive#head")
-                let branch = fugitive#head()
-                return branch !=# '' ? ' '.branch : ' [No Head]'
-            else
-                return ' [No Head]'
-            endif
-            return ''
-        endfunction
-        function! LightLineFilename()
-            return ('' != LightLineReadonly() ? LightLineReadonly() . ' ' : '') .
-                 \ ('' != expand('%:f') ? expand('%:f') : '[No Name]') .
-                 \ ('' != LightLineModified() ? ' ' . LightLineModified() : '')
-        endfunction
-    " }
+"   LightLine Components: {
+"        function! LightLineModified()
+"            if &modified
+"                return "+"
+"            else
+"                return ""
+"            endif
+"        endfunction
+"        function! LightLineReadonly()
+"            if &readonly
+"                return ""
+"            else
+"                return ""
+"            endif
+"        endfunction
+"        function! LightLineFugitive()
+"            if exists("*fugitive#head")
+"                let branch = fugitive#head()
+"                return branch !=# '' ? ' '.branch : ' [No Head]'
+"            else
+"                return ' [No Head]'
+"            endif
+"            return ''
+"        endfunction
+"        function! LightLineFilename()
+"            return ('' != LightLineReadonly() ? LightLineReadonly() . ' ' : '') .
+"                 \ ('' != expand('%:f') ? expand('%:f') : '[No Name]') .
+"                 \ ('' != LightLineModified() ? ' ' . LightLineModified() : '')
+"        endfunction
+"    " }
 
     " Windows: {
         let g:gundo_width = 48
@@ -172,7 +181,7 @@
         let g:NERDTreeWinSize = 48
         let g:NERDTreeMinimalUI = 1
         let g:NERDTreeShowLineNumbers = 1
-        autocmd FileType nerdtree setlocal relativenumber
+      "  autocmd FileType nerdtree setlocal relativenumber
         let g:tagbar_show_linenumbers = -1 " Global conf.
 
         let g:gundo_preview_height = 13
@@ -190,7 +199,9 @@
             set guioptions=i " Kill them toolbars!
             if has("win32")
                 set shellslash " Fix for Fugitive.
-                set guifont=Hack:h10,Monospace:h10
+                "set guifont=Hack:h10,Monospace:h10
+                "set guifont=Source Code Pro:h10,Monospace:h10
+                set guifont=Cozette
                 " Below we inject a DLL that removes the annoying GTK padding when using Win32.
                 map <F11> <Esc>:call libcallnr("gvimfullscreen.dll", "ToggleFullScreen", 0)<CR>
             else
@@ -202,7 +213,7 @@
 
         " A LightLine Theme
         let g:lightline = {
-        \ 'colorscheme': 'gruvbox',
+        \ 'colorscheme': 'ayu',
         \ 'active': {
         \  'left': [[ 'mode' ], [ 'fugitive' ], [ 'filename' ]],
         \  'right': [[ 'linenums' ], [ 'fileencoding', 'fileformat' ], [ 'filetype']]
@@ -226,7 +237,10 @@
         \ }
     " }
 
-
+    set nolist " Enables the characters to be displayed.
+    " Useful for showing trailing whitespace and others.
+    set nohlsearch
+    "
 " }
 
 " Mappings: {
@@ -250,20 +264,3 @@
     " Shortcut for Tabulate.
     noremap <leader>a :Tab /
 " }
-"copy highlighted text to .vimbuffer
-set nohlsearch
-"Automatically closing braces
-inoremap {<CR> {<CR>}<Esc>ko<tab>
-inoremap [<CR> [<CR>]<Esc>ko<tab>
-inoremap (<CR> (<CR>)<Esc>ko<tab>
-if &term =~ '^xterm'
-" solid underscore
-    let &t_SI .= "\<Esc>[4 q"
-"     " solid block
-    let &t_EI .= "\<Esc>[2 q"
-"         " 1 or 0 -> blinking block
-"           " 3 -> blinking underscore
-"             " Recent versions of xterm (282 or above) also support
-"               " 5 -> blinking vertical bar
-"                 " 6 -> solid vertical bar
-endif
