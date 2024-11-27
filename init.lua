@@ -10,7 +10,7 @@ if not vim.loop.fs_stat(lazypath) then
   })
 end
 vim.opt.rtp:prepend(lazypath)
-
+vim.opt.rtp:append(vim.fn.stdpath "config" .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
 vim.api.nvim_set_hl(0, 'LineNrAbove', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNr', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNrBelow', { fg='#bcbcbc', bold=true })
@@ -19,12 +19,19 @@ vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappin
 vim.g.gruvbox_material_background = 'hard'
 vim.cmd [[set relativenumber]]
 vim.cmd [[set nohls]]
-
 require("lazy").setup({
   "neovim/nvim-lspconfig",
+  'nvim-lua/plenary.nvim',
+  'nvim-telescope/telescope.nvim',
+  'OmniSharp/omnisharp-vim',
+  'Hoffs/omnisharp-extended-lsp.nvim',
   "simrat39/rust-tools.nvim",
   "tpope/vim-repeat",
-  "tmsvg/pear-tree",
+  {
+      "windwp/nvim-autopairs",
+      event = "InsertEnter",
+      config = true
+  },
   "scrooloose/nerdtree",
   "tmhedberg/matchit",
   "mileszs/ack.vim", 
@@ -32,11 +39,8 @@ require("lazy").setup({
   "tpope/vim-dispatch",
   "vim-airline/vim-airline",
   "vim-airline/vim-airline-themes",
---  "ellisonleao/gruvbox.nvim",
   "sainnhe/gruvbox-material",
-  "t184256/vim-boring",
   "rktjmp/lush.nvim",
-  "fxn/vim-monochrome",
   -- snippets and autocomplete
   "L3MON4D3/LuaSnip",
   "saadparwaiz1/cmp_luasnip",
@@ -45,32 +49,48 @@ require("lazy").setup({
   "hrsh7th/cmp-path",
   "hrsh7th/cmp-cmdline",
   "hrsh7th/nvim-cmp",
+  {
+	  "williamboman/mason.nvim",
+	  config = true,
+  },
+  {
+	  "williamboman/mason-lspconfig.nvim",
+	  opt = 
+	  {
+		  ensure_installed = 
+		  {
+			  'rust_analyzer',
+			  'omnisharp',
+		  },
+	  },
+  },
 })
+local omnisharp_server_location = vim.fn.has('win32') and 'C:\\omnisharp\\OmniSharp.exe' or '~/omnisharp/omnisharp'
+require('lspconfig').omnisharp.setup({
+        on_attach = on_attach,
+        capabilities = capabilities,
+        cmd = { omnisharp_server_location, "--languageserver" , "--hostPID", tostring(pid) }
+})
+--vim.cmd [[let g:OmniSharp_server_path = omnisharp_server_location]]
+vim.g['OmniSharp_server_path'] = omnisharp_server_location
+vim.cmd [[let g:OmniSharp_server_use_net6 = 1]]
 vim.cmd [[let g:airline_theme='minimalist']]
+local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<Leader>d', ':NERDTreeToggle<CR>', {noremap = true, silent = true, desc = "open nerdtree"})
-vim.keymap.set('n', '<Leader>f', ':Ack!<Space>', {noremap = true, silent = true, desc = "run Ack"})
-vim.keymap.set('n', '<C-d>', ':lua vim.lsp.buf.hover()<CR>', {noremap = true, silent = true, desc = "hover actions"})
--- lsp configs
-local rt = require("rust-tools")
-rt.setup({
-    server = {
-        on_attach = function(_, bufnr)
-            vim.keymap.set("n", "<C-space>", rt.hover_actions.hover_actions, { buffer = bufnr })
-        require("rust-tools").inlay_hints.enable()
-    end,
-    },
-    lazy=false,
-})
-
+vim.keymap.set('n', '<Leader>f', builtin.find_files, {noremap = true, silent = true, desc = "telescope find files"})
+vim.keymap.set('n', '<Leader>fg', builtin.live_grep, {noremap = true, silent = true, desc = "telescope live grep"})
+vim.keymap.set('n', '<Leader>fcw', ':lua require("telescope.builtin").grep_string({search = vim.fn.expand("<cword>")})<CR>', {noremap = true, silent = true, desc = "telescope find current word"})
+vim.keymap.set('n', '<C-g>', ':lua vim.lsp.buf.hover()<CR>', {noremap = true, silent = true, desc = "hover actions"})
+vim.keymap.set('n', '<C-h>', ':lua vim.lsp.buf.references()<CR>', {noremap = true, silent = true, desc = "find references"})
+require('telescope').setup({})
 -- colorschemes 
 vim.o.background = "dark"
 vim.cmd [[colorscheme gruvbox-material]]
--- vim.cmd [[colorscheme monochrome]]
---vim.cmd [[colorscheme boring]]
---vim.cmd [[colorscheme warlock]]
 
 vim.cmd [[set shiftwidth=4]]
 vim.cmd [[set tabstop=4 ]]
+vim.cmd [[set expandtab ]]
+
 
 local cmp = require'cmp'
 
@@ -130,10 +150,22 @@ cmp.setup({
     matching = { disallow_symbol_nonprefix_matching = false }
   })
 
-  -- Set up lspconfig.
+  -- Set up cmp with lsp
   local capabilities = require('cmp_nvim_lsp').default_capabilities()
-  vim.lsp.set_log_level("trace")
-  -- Replace <YOUR_LSP_SERVER> with each lsp server you've enabled.
-  require('lspconfig')['clangd'].setup {
-    capabilities = capabilities
-  }
+
+  if vim.fn.has('win32') then
+      vim.api.nvim_set_current_dir("C:\\SVN_Checkouts\\")
+      vim.cmd [[set ffs=dos]]
+      vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+      vim.o.shellcmdflag = '-NoLogo -ExecutionPolicy RemoteSigned -Command [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();$PSDefaultParameterValues["Out-File:Encoding"]="utf8";Remove-Alias -Force -ErrorAction SilentlyContinue tee;'
+      vim.o.shellredir = '2>&1 | %%{ "$_" } | Out-File %s; exit $LastExitCode'
+      vim.o.shellpipe = '2>&1 | %%{ "$_" } | tee %s; exit $LastExitCode'
+      vim.cmd [[set shellquote= shellxquote=]]
+
+
+      vim.api.nvim_create_autocmd('TermOpen', {
+          callback = function()
+              vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
+          end,
+      })
+  end
