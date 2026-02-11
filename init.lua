@@ -19,13 +19,20 @@ vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappin
 vim.g.gruvbox_material_background = 'hard'
 vim.cmd [[set relativenumber]]
 vim.cmd [[set nohls]]
+vim.cmd [[set noea]]
+vim.cmd [[set nobomb]]
 require("lazy").setup({
   "neovim/nvim-lspconfig",
   'nvim-lua/plenary.nvim',
   'nvim-telescope/telescope.nvim',
-  'OmniSharp/omnisharp-vim',
-  'Hoffs/omnisharp-extended-lsp.nvim',
-  "simrat39/rust-tools.nvim",
+   {
+       "seblj/roslyn.nvim",
+       ft = "cs",
+       opts = {
+           broad_search = true,
+       }
+   },
+  "mfussenegger/nvim-dap",
   "tpope/vim-repeat",
   {
       "windwp/nvim-autopairs",
@@ -34,13 +41,16 @@ require("lazy").setup({
   },
   "scrooloose/nerdtree",
   "tmhedberg/matchit",
-  "mileszs/ack.vim", 
+  "mileszs/ack.vim",
   "sjl/gundo.vim",
   "tpope/vim-dispatch",
+  "godlygeek/tabular",
   "vim-airline/vim-airline",
   "vim-airline/vim-airline-themes",
-  "sainnhe/gruvbox-material",
+  --"sainnhe/gruvbox-material",
+  "slugbyte/lackluster.nvim",
   "rktjmp/lush.nvim",
+  "ntpeters/vim-better-whitespace",
   -- snippets and autocomplete
   "L3MON4D3/LuaSnip",
   "saadparwaiz1/cmp_luasnip",
@@ -55,37 +65,138 @@ require("lazy").setup({
   },
   {
 	  "williamboman/mason-lspconfig.nvim",
-	  opt = 
+	  opt =
 	  {
-		  ensure_installed = 
+		  ensure_installed =
 		  {
-			  'rust_analyzer',
-			  'omnisharp',
+			  'rust-analyzer',
 		  },
 	  },
   },
 })
-local omnisharp_server_location = vim.fn.has('win32') and 'C:\\omnisharp\\OmniSharp.exe' or '~/omnisharp/omnisharp'
-require('lspconfig').omnisharp.setup({
-        on_attach = on_attach,
-        capabilities = capabilities,
-        cmd = { omnisharp_server_location, "--languageserver" , "--hostPID", tostring(pid) }
+
+local function find_dotnet_project_dir()
+  local uv = vim.loop
+  local cwd = vim.fn.getcwd()
+
+  -- Helper to check if a directory contains a .sln or .csproj file
+  local function contains_dotnet_file(dir)
+    local full_path = cwd .. "/" .. dir
+    local handle = uv.fs_scandir(full_path)
+    if not handle then return false end
+
+    while true do
+      local name, type = uv.fs_scandir_next(handle)
+      if not name then break end
+      if type == "file" and (name:match("%.sln$") or name:match("%.csproj$")) then
+        return true
+      end
+    end
+    return false
+  end
+
+  -- Scan subdirectories of cwd
+  local handle = uv.fs_scandir(cwd)
+  if not handle then return nil end
+
+  while true do
+    local name, type = uv.fs_scandir_next(handle)
+    if not name then break end
+    if type == "directory" and contains_dotnet_file(name) then
+      return name
+    end
+  end
+
+  return nil -- nothing found
+end
+
+local function find_clangd_json()
+  local uv = vim.loop
+  local cwd = vim.fn.getcwd()
+
+  -- Helper to check if a directory contains a compile_commands.json file
+  local function contains_compile_commands_json(dir)
+    local full_path = cwd .. "/" .. dir
+    local handle = uv.fs_scandir(full_path)
+    if not handle then return false end
+
+    while true do
+      local name, type = uv.fs_scandir_next(handle)
+      if not name then break end
+      if type == "file" and (name:match("compile_commands.json")) then
+        return true
+      end
+    end
+    return false
+  end
+
+  -- Scan subdirectories of cwd
+  local handle = uv.fs_scandir(cwd)
+  if not handle then return nil end
+
+  while true do
+    local name, type = uv.fs_scandir_next(handle)
+    if not name then break end
+    if type == "directory" and contains_compile_commands_json(name) then
+      return name
+    end
+  end
+  return nil -- nothing found
+end
+
+require("mason").setup()
+require("mason-lspconfig").setup({
+    ensure_installed = {
+        "rust_analyzer",
+    },
 })
---vim.cmd [[let g:OmniSharp_server_path = omnisharp_server_location]]
-vim.g['OmniSharp_server_path'] = omnisharp_server_location
-vim.cmd [[let g:OmniSharp_server_use_net6 = 1]]
+
+require("mason-lspconfig").setup_handlers({
+    function(server_name)
+        require("lspconfig")[server_name].setup({
+            on_attach = on_attach,
+            capabilities = capabilities,
+            handlers = rounded_border_handlers,
+        })
+    end,
+    ["rust_analyzer"] = function()
+        require("lspconfig")["rust_analyzer"].setup({
+            on_attach = on_attach,
+            capabilities = capabilities,
+        })
+    end,
+    ["clangd"] = function()
+        require("lspconfig")["clangd"].setup({
+            on_attach = on_attach,
+            capabilities = capabilities,
+        })
+	end,
+    ["omnisharp"] = function()
+        require("lspconfig")["omnisharp"].setup({
+            on_attach = on_attach,
+            capabilities = capabilities,
+            enable_import_completion = true,
+            organize_imports_on_format = true,
+            enable_roslyn_analyzers = true,
+            root_dir = find_dotnet_project_dir(),
+        })
+    end,
+})
 vim.cmd [[let g:airline_theme='minimalist']]
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<Leader>d', ':NERDTreeToggle<CR>', {noremap = true, silent = true, desc = "open nerdtree"})
 vim.keymap.set('n', '<Leader>f', builtin.find_files, {noremap = true, silent = true, desc = "telescope find files"})
 vim.keymap.set('n', '<Leader>fg', builtin.live_grep, {noremap = true, silent = true, desc = "telescope live grep"})
+vim.keymap.set('n', '<Leader>fb', builtin.current_buffer_fuzzy_find, {noremap = true, silent = true, desc = "telescope fuzzy find current buffer"})
 vim.keymap.set('n', '<Leader>fcw', ':lua require("telescope.builtin").grep_string({search = vim.fn.expand("<cword>")})<CR>', {noremap = true, silent = true, desc = "telescope find current word"})
+vim.keymap.set('n', '<Leader>r', ':lua vim.diagnostic.open_float()<CR>', {noremap = true, silent = true, desc = "diagnostics popup"})
 vim.keymap.set('n', '<C-g>', ':lua vim.lsp.buf.hover()<CR>', {noremap = true, silent = true, desc = "hover actions"})
 vim.keymap.set('n', '<C-h>', ':lua vim.lsp.buf.references()<CR>', {noremap = true, silent = true, desc = "find references"})
+vim.keymap.set('n', 'gd', ':lua vim.lsp.buf.implementation()<CR>', {noremap = true, silent = true, desc = "go to implementation"})
 require('telescope').setup({})
--- colorschemes 
+-- colorschemes
 vim.o.background = "dark"
-vim.cmd [[colorscheme gruvbox-material]]
+vim.cmd [[colorscheme lackluster]]
 
 vim.cmd [[set shiftwidth=4]]
 vim.cmd [[set tabstop=4 ]]
@@ -153,19 +264,32 @@ cmp.setup({
   -- Set up cmp with lsp
   local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
-  if vim.fn.has('win32') then
-      vim.api.nvim_set_current_dir("C:\\SVN_Checkouts\\")
-      vim.cmd [[set ffs=dos]]
-      vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
-      vim.o.shellcmdflag = '-NoLogo -ExecutionPolicy RemoteSigned -Command [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();$PSDefaultParameterValues["Out-File:Encoding"]="utf8";Remove-Alias -Force -ErrorAction SilentlyContinue tee;'
-      vim.o.shellredir = '2>&1 | %%{ "$_" } | Out-File %s; exit $LastExitCode'
-      vim.o.shellpipe = '2>&1 | %%{ "$_" } | tee %s; exit $LastExitCode'
-      vim.cmd [[set shellquote= shellxquote=]]
-
-
-      vim.api.nvim_create_autocmd('TermOpen', {
-          callback = function()
-              vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
-          end,
-      })
-  end
+  --DIY powershell profile.. avert your eyes
+ if vim.fn.has('win32') then
+    vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    vim.api.nvim_set_current_dir("C:\\projects\\")
+    vim.cmd [[set ffs=dos]]
+    vim.cmd [[set shellquote= shellxquote=]]
+    vim.api.nvim_create_autocmd('TermOpen', {
+      callback = function()
+          vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
+          vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name grep -Value rg\r")
+          vim.api.nvim_chan_send(vim.bo.channel, "function svndiff { [CmdletBinding()]param([string]$DiffPath) $Temp = New-TemporaryFile \r\n $CurDir = $pwd \r\n $OutFile = $($pwd.Path + '\\' + $DiffPath) \r\n svn diff -x --ignore-eol-style --patch-compatible > $Temp \r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r")
+          vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
+      end,
+    })
+    local dap = require('dap')
+    dap.adapters.coreclr = {
+        type = "executable",
+        command = "C:\\Users\\ccummings\\AppData\\Local\\nvim-data\\mason\\packages\\netcoredbg\\netcoredbg\\netcoredbg.exe",
+        args = { "--interpreter=vscode" },
+    }
+    dap.configurations.cs = {
+        type = "coreclr",
+        name = "launch - netcoredbg",
+        request = "launch",
+        program = function()
+            return vim.fn.input('Path to dll', vim.fn.getcwd() .. '/GameServer_Kit/Setup/Intermediate/', 'file')
+        end,
+    }
+end
