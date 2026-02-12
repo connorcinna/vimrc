@@ -21,6 +21,7 @@ vim.cmd [[set relativenumber]]
 vim.cmd [[set nohls]]
 vim.cmd [[set noea]]
 vim.cmd [[set nobomb]]
+vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
 require("lazy").setup({
   "neovim/nvim-lspconfig",
   'nvim-lua/plenary.nvim',
@@ -74,6 +75,13 @@ require("lazy").setup({
 	  },
   },
 })
+
+-- swap to cmd.exe to do a command and then back to powershell
+local function do_redirect_shell_cmd(args)
+    vim.o.shell="C:\\Windows\\System32\\cmd.exe"
+    vim.cmd(args)
+    vim.o.shell= "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+end
 
 local function find_dotnet_project_dir()
   local uv = vim.loop
@@ -193,6 +201,15 @@ vim.keymap.set('n', '<Leader>r', ':lua vim.diagnostic.open_float()<CR>', {norema
 vim.keymap.set('n', '<C-g>', ':lua vim.lsp.buf.hover()<CR>', {noremap = true, silent = true, desc = "hover actions"})
 vim.keymap.set('n', '<C-h>', ':lua vim.lsp.buf.references()<CR>', {noremap = true, silent = true, desc = "find references"})
 vim.keymap.set('n', 'gd', ':lua vim.lsp.buf.implementation()<CR>', {noremap = true, silent = true, desc = "go to implementation"})
+vim.keymap.set('n', '<Leader>yp', function()
+    vim.fn.setreg('+', vim.fn.expand('%:p:.'))
+end)
+vim.keymap.set('n', '<Leader>yd', function()
+    vim.fn.setreg('+', vim.fn.expand('%:h'))
+end)
+vim.keymap.set('n', '<Leader>yn', function()
+    vim.fn.setreg('+', vim.fn.expand('%:t:r'))
+end)
 require('telescope').setup({})
 -- colorschemes
 vim.o.background = "dark"
@@ -264,20 +281,23 @@ cmp.setup({
   -- Set up cmp with lsp
   local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
-  --DIY powershell profile.. avert your eyes
  if vim.fn.has('win32') then
     vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
     vim.api.nvim_set_current_dir("C:\\projects\\")
     vim.cmd [[set ffs=dos]]
     vim.cmd [[set shellquote= shellxquote=]]
+    --DIY powershell profile.. avert your eyes
     vim.api.nvim_create_autocmd('TermOpen', {
       callback = function()
           vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
           vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name grep -Value rg\r")
-          vim.api.nvim_chan_send(vim.bo.channel, "function svndiff { [CmdletBinding()]param([string]$DiffPath) $Temp = New-TemporaryFile \r\n $CurDir = $pwd \r\n $OutFile = $($pwd.Path + '\\' + $DiffPath) \r\n svn diff -x --ignore-eol-style --patch-compatible > $Temp \r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r")
-          vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
-      end,
+          vim.api.nvim_chan_send(vim.bo.channel, "function svndiff\r\n {\r\n param([string]$DiffPath,[string]$Revision)\r\n $Command = 'svn diff -x --ignore-eol-style --patch-compatible'\r\n if ($Revision)\r\n {\r\n $Revisions = $Revision.Split(':')\r\n if (!$Revisions[0] -or !$Revisions[1])\r\n {\r\n echo 'please provide -Revision as an argument in the form \"REVISION1:REVISION2\"'\r\n }\r\n $Command = $('svn diff -r ' + $Revision + ' -x --ignore-eol-style --patch-compatible') \r\n }\r\n if ($DiffPath)\r\n {\r\n $Temp = New-TemporaryFile\r\n $OutFile = $($pwd.Path + '\\' + $DiffPath)\r\n $Command = $($Command + ' > ' + $Temp)\r\n echo $Command\r\n Invoke-Expression $Command\r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r\n else\r\n {\r\n echo $Command\r\n Invoke-Expression $Command\r\n }\r\n }\r")
+           vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
+      end, --autocmd callback function
     })
+    vim.api.nvim_create_user_command('SvnBlame', function()
+        do_redirect_shell_cmd("new | r ! svn blame #")
+    end, {})
     local dap = require('dap')
     dap.adapters.coreclr = {
         type = "executable",
