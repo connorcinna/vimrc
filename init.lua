@@ -10,10 +10,10 @@ if not vim.loop.fs_stat(lazypath) then
   })
 end
 vim.opt.rtp:prepend(lazypath)
-vim.opt.rtp:append(vim.fn.stdpath "config" .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
 vim.api.nvim_set_hl(0, 'LineNrAbove', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNr', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNrBelow', { fg='#bcbcbc', bold=true })
+local work = False
 
 vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappings are correct
 vim.g.gruvbox_material_background = 'hard'
@@ -21,7 +21,6 @@ vim.cmd [[set relativenumber]]
 vim.cmd [[set nohls]]
 vim.cmd [[set noea]]
 vim.cmd [[set nobomb]]
-vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
 require("lazy").setup({
   "neovim/nvim-lspconfig",
   'nvim-lua/plenary.nvim',
@@ -40,6 +39,10 @@ require("lazy").setup({
       event = "InsertEnter",
       config = true
   },
+  {
+	  "mason-org/mason.nvim",
+	  opts = {}
+  },
   "scrooloose/nerdtree",
   "tmhedberg/matchit",
   "mileszs/ack.vim",
@@ -48,8 +51,9 @@ require("lazy").setup({
   "godlygeek/tabular",
   "vim-airline/vim-airline",
   "vim-airline/vim-airline-themes",
-  --"sainnhe/gruvbox-material",
+  "sainnhe/gruvbox-material",
   "slugbyte/lackluster.nvim",
+  "aikhe/fleur.nvim",
   "rktjmp/lush.nvim",
   "ntpeters/vim-better-whitespace",
   -- snippets and autocomplete
@@ -152,44 +156,43 @@ local function find_clangd_json()
   return nil -- nothing found
 end
 
-require("mason").setup()
 require("mason-lspconfig").setup({
     ensure_installed = {
         "rust_analyzer",
     },
 })
 
-require("mason-lspconfig").setup_handlers({
-    function(server_name)
-        require("lspconfig")[server_name].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-            handlers = rounded_border_handlers,
-        })
-    end,
-    ["rust_analyzer"] = function()
-        require("lspconfig")["rust_analyzer"].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-        })
-    end,
-    ["clangd"] = function()
-        require("lspconfig")["clangd"].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-        })
-	end,
-    ["omnisharp"] = function()
-        require("lspconfig")["omnisharp"].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-            enable_import_completion = true,
-            organize_imports_on_format = true,
-            enable_roslyn_analyzers = true,
-            root_dir = find_dotnet_project_dir(),
-        })
-    end,
-})
+-- require("mason-lspconfig").setup_handlers({
+--     function(server_name)
+--         require("lspconfig")[server_name].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--             handlers = rounded_border_handlers,
+--         })
+--     end,
+--     ["rust_analyzer"] = function()
+--         require("lspconfig")["rust_analyzer"].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--         })
+--     end,
+--     ["clangd"] = function()
+--         require("lspconfig")["clangd"].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--         })
+-- 	end,
+--     ["omnisharp"] = function()
+--         require("lspconfig")["omnisharp"].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--             enable_import_completion = true,
+--             organize_imports_on_format = true,
+--             enable_roslyn_analyzers = true,
+--             root_dir = find_dotnet_project_dir(),
+--         })
+--     end,
+-- })
 vim.cmd [[let g:airline_theme='minimalist']]
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<Leader>d', ':NERDTreeToggle<CR>', {noremap = true, silent = true, desc = "open nerdtree"})
@@ -213,7 +216,7 @@ end)
 require('telescope').setup({})
 -- colorschemes
 vim.o.background = "dark"
-vim.cmd [[colorscheme lackluster]]
+vim.cmd [[colorscheme fleur]]
 
 vim.cmd [[set shiftwidth=4]]
 vim.cmd [[set tabstop=4 ]]
@@ -282,34 +285,39 @@ cmp.setup({
   local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
  if vim.fn.has('win32') then
-    vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
-    vim.api.nvim_set_current_dir("C:\\projects\\")
-    vim.cmd [[set ffs=dos]]
-    vim.cmd [[set shellquote= shellxquote=]]
-    --DIY powershell profile.. avert your eyes
-    vim.api.nvim_create_autocmd('TermOpen', {
-      callback = function()
-          vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
-          vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name grep -Value rg\r")
-          vim.api.nvim_chan_send(vim.bo.channel, "function svndiff\r\n {\r\n param([string]$DiffPath,[string]$Revision)\r\n $Command = 'svn diff -x --ignore-eol-style --patch-compatible'\r\n if ($Revision)\r\n {\r\n $Revisions = $Revision.Split(':')\r\n if (!$Revisions[0] -or !$Revisions[1])\r\n {\r\n echo 'please provide -Revision as an argument in the form \"REVISION1:REVISION2\"'\r\n }\r\n $Command = $('svn diff -r ' + $Revision + ' -x --ignore-eol-style --patch-compatible') \r\n }\r\n if ($DiffPath)\r\n {\r\n $Temp = New-TemporaryFile\r\n $OutFile = $($pwd.Path + '\\' + $DiffPath)\r\n $Command = $($Command + ' > ' + $Temp)\r\n echo $Command\r\n Invoke-Expression $Command\r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r\n else\r\n {\r\n echo $Command\r\n Invoke-Expression $Command\r\n }\r\n }\r")
-           vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
-      end, --autocmd callback function
-    })
-    vim.api.nvim_create_user_command('SvnBlame', function()
-        do_redirect_shell_cmd("new | r ! svn blame #")
-    end, {})
-    local dap = require('dap')
-    dap.adapters.coreclr = {
-        type = "executable",
-        command = "C:\\Users\\ccummings\\AppData\\Local\\nvim-data\\mason\\packages\\netcoredbg\\netcoredbg\\netcoredbg.exe",
-        args = { "--interpreter=vscode" },
-    }
-    dap.configurations.cs = {
-        type = "coreclr",
-        name = "launch - netcoredbg",
-        request = "launch",
-        program = function()
-            return vim.fn.input('Path to dll', vim.fn.getcwd() .. '/GameServer_Kit/Setup/Intermediate/', 'file')
-        end,
-    }
+	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
+	vim.cmd [[set ffs=dos]]
+	vim.cmd [[set shellquote= shellxquote=]]
+	if work then
+		-- the following line doesn't need to have the forward slashes swapped for some reason?
+		vim.opt.rtp:append(vim.fn.stdpath "config" .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
+		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
+	        vim.api.nvim_set_current_dir("C:\\projects\\")
+		--DIY powershell profile.. avert your eyes
+		 vim.api.nvim_create_autocmd('TermOpen', {
+		      callback = function()
+			  vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
+			  vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name grep -Value rg\r")
+			  vim.api.nvim_chan_send(vim.bo.channel, "function svndiff\r\n {\r\n param([string]$DiffPath,[string]$Revision)\r\n $Command = 'svn diff -x --ignore-eol-style --patch-compatible'\r\n if ($Revision)\r\n {\r\n $Revisions = $Revision.Split(':')\r\n if (!$Revisions[0] -or !$Revisions[1])\r\n {\r\n echo 'please provide -Revision as an argument in the form \"REVISION1:REVISION2\"'\r\n }\r\n $Command = $('svn diff -r ' + $Revision + ' -x --ignore-eol-style --patch-compatible') \r\n }\r\n if ($DiffPath)\r\n {\r\n $Temp = New-TemporaryFile\r\n $OutFile = $($pwd.Path + '\\' + $DiffPath)\r\n $Command = $($Command + ' > ' + $Temp)\r\n echo $Command\r\n Invoke-Expression $Command\r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r\n else\r\n {\r\n echo $Command\r\n Invoke-Expression $Command\r\n }\r\n }\r")
+			   vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
+		      end, --autocmd callback function
+		    })
+		    vim.api.nvim_create_user_command('SvnBlame', function()
+			do_redirect_shell_cmd("new | r ! svn blame #")
+		    end, {})
+		    local dap = require('dap')
+		    dap.adapters.coreclr = {
+			type = "executable",
+			command = "C:\\Users\\ccummings\\AppData\\Local\\nvim-data\\mason\\packages\\netcoredbg\\netcoredbg\\netcoredbg.exe",
+			args = { "--interpreter=vscode" },
+		    }
+		    dap.configurations.cs = {
+			type = "coreclr",
+			name = "launch - netcoredbg",
+			request = "launch",
+			program = function()
+			    return vim.fn.input('Path to dll', vim.fn.getcwd() .. '/GameServer_Kit/Setup/Intermediate/', 'file')
+			end,
+		    }
+       end
 end
