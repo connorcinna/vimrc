@@ -13,7 +13,7 @@ vim.opt.rtp:prepend(lazypath)
 vim.api.nvim_set_hl(0, 'LineNrAbove', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNr', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNrBelow', { fg='#bcbcbc', bold=true })
-local work = False
+work = true
 
 vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappings are correct
 vim.g.gruvbox_material_background = 'hard'
@@ -81,10 +81,26 @@ require("lazy").setup({
 })
 
 -- swap to cmd.exe to do a command and then back to powershell
-local function do_redirect_shell_cmd(args)
-    vim.o.shell="C:\\Windows\\System32\\cmd.exe"
-    vim.cmd(args)
-    vim.o.shell= "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+local function do_cmd(args)
+    if vim.fn.has('win32') then
+        vim.o.shell="C:\\Windows\\System32\\cmd.exe"
+        vim.cmd(args)
+        vim.o.shell= "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    else
+        vim.cmd(args)
+    end
+end
+
+-- swap to cmd.exe to do a system command and then back to powershell
+local function do_system_cmd(args)
+    if vim.fn.has('win32') then
+        vim.o.shell="C:\\Windows\\System32\\cmd.exe"
+        output = vim.fn.system(args)
+        vim.o.shell= "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+        return output
+    else
+        return vim.fn.system(args)
+    end
 end
 
 local function find_dotnet_project_dir()
@@ -162,37 +178,37 @@ require("mason-lspconfig").setup({
     },
 })
 
--- require("mason-lspconfig").setup_handlers({
---     function(server_name)
---         require("lspconfig")[server_name].setup({
---             on_attach = on_attach,
---             capabilities = capabilities,
---             handlers = rounded_border_handlers,
---         })
---     end,
---     ["rust_analyzer"] = function()
---         require("lspconfig")["rust_analyzer"].setup({
---             on_attach = on_attach,
---             capabilities = capabilities,
---         })
---     end,
---     ["clangd"] = function()
---         require("lspconfig")["clangd"].setup({
---             on_attach = on_attach,
---             capabilities = capabilities,
---         })
--- 	end,
---     ["omnisharp"] = function()
---         require("lspconfig")["omnisharp"].setup({
---             on_attach = on_attach,
---             capabilities = capabilities,
---             enable_import_completion = true,
---             organize_imports_on_format = true,
---             enable_roslyn_analyzers = true,
---             root_dir = find_dotnet_project_dir(),
---         })
---     end,
--- })
+require("mason-lspconfig").setup_handlers({
+    function(server_name)
+        require("lspconfig")[server_name].setup({
+            on_attach = on_attach,
+            capabilities = capabilities,
+            handlers = rounded_border_handlers,
+        })
+    end,
+    ["rust_analyzer"] = function()
+        require("lspconfig")["rust_analyzer"].setup({
+            on_attach = on_attach,
+            capabilities = capabilities,
+        })
+    end,
+    ["clangd"] = function()
+        require("lspconfig")["clangd"].setup({
+            on_attach = on_attach,
+            capabilities = capabilities,
+        })
+	end,
+    ["omnisharp"] = function()
+        require("lspconfig")["omnisharp"].setup({
+            on_attach = on_attach,
+            capabilities = capabilities,
+            enable_import_completion = true,
+            organize_imports_on_format = true,
+            enable_roslyn_analyzers = true,
+            root_dir = find_dotnet_project_dir(),
+        })
+    end,
+})
 vim.cmd [[let g:airline_theme='minimalist']]
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<Leader>d', ':NERDTreeToggle<CR>', {noremap = true, silent = true, desc = "open nerdtree"})
@@ -284,6 +300,29 @@ cmp.setup({
   -- Set up cmp with lsp
   local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
+  -- REGION user commands
+vim.api.nvim_create_user_command('SvnBlame', function()
+    do_cmd("tabnew | r ! svn blame #")
+end, {})
+vim.api.nvim_create_user_command('SvnDiff', function()
+    local modified = do_system_cmd("svn status --quiet")
+    local modified_table = {}
+    for line in modified:gmatch("[^\r\n]+") do
+        table.insert(modified_table, line)
+    end
+    for index, line in ipairs(modified_table) do
+        --according to `svn help status`
+        --The first seven columns in the output are each one character wide
+        local line = string.sub(line, 7)
+        do_system_cmd(string.format("svn cat %s > %s.tmp", line, line))
+        vim.cmd(string.format("tabnew %s", line))
+        vim.cmd(string.format("vert diffsplit %s.tmp", line))
+        vim.fn.system(string.format("rm %s.tmp", line))
+    end
+end, {})
+
+  -- REGION work / windows config
+
  if vim.fn.has('win32') then
 	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
 	vim.cmd [[set ffs=dos]]
@@ -292,7 +331,7 @@ cmp.setup({
 		-- the following line doesn't need to have the forward slashes swapped for some reason?
 		vim.opt.rtp:append(vim.fn.stdpath "config" .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
 		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
-	        vim.api.nvim_set_current_dir("C:\\projects\\")
+	    vim.api.nvim_set_current_dir("C:\\projects\\")
 		--DIY powershell profile.. avert your eyes
 		 vim.api.nvim_create_autocmd('TermOpen', {
 		      callback = function()
@@ -302,14 +341,11 @@ cmp.setup({
 			   vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
 		      end, --autocmd callback function
 		    })
-		    vim.api.nvim_create_user_command('SvnBlame', function()
-			do_redirect_shell_cmd("new | r ! svn blame #")
-		    end, {})
 		    local dap = require('dap')
 		    dap.adapters.coreclr = {
-			type = "executable",
-			command = "C:\\Users\\ccummings\\AppData\\Local\\nvim-data\\mason\\packages\\netcoredbg\\netcoredbg\\netcoredbg.exe",
-			args = { "--interpreter=vscode" },
+                type = "executable",
+                command = "C:\\Users\\ccummings\\AppData\\Local\\nvim-data\\mason\\packages\\netcoredbg\\netcoredbg\\netcoredbg.exe",
+                args = { "--interpreter=vscode" },
 		    }
 		    dap.configurations.cs = {
 			type = "coreclr",
