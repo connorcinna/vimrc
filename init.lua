@@ -13,7 +13,6 @@ vim.opt.rtp:prepend(lazypath)
 vim.api.nvim_set_hl(0, 'LineNrAbove', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNr', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNrBelow', { fg='#bcbcbc', bold=true })
-work = true
 
 vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappings are correct
 vim.g.gruvbox_material_background = 'hard'
@@ -21,6 +20,29 @@ vim.cmd [[set relativenumber]]
 vim.cmd [[set nohls]]
 vim.cmd [[set noea]]
 vim.cmd [[set nobomb]]
+vim.o.clipboard = "unnamedplus"
+
+local function paste()
+  return {
+    vim.fn.split(vim.fn.getreg(""), "\n"),
+    vim.fn.getregtype(""),
+  }
+end
+
+vim.g.clipboard = {
+  name = "OSC 52",
+
+  copy = {
+    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+  },
+  paste = {
+    ["+"] = paste,
+    ["*"] = paste,
+  },
+}
+vim.cmd [[hi clear MatchParen]]
+
 require("lazy").setup({
   "neovim/nvim-lspconfig",
   'nvim-lua/plenary.nvim',
@@ -172,43 +194,46 @@ local function find_clangd_json()
   return nil -- nothing found
 end
 
+require("mason").setup()
 require("mason-lspconfig").setup({
     ensure_installed = {
         "rust_analyzer",
+        "pyright",
     },
 })
+require('lspconfig').pyright.setup({})
 
-require("mason-lspconfig").setup_handlers({
-    function(server_name)
-        require("lspconfig")[server_name].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-            handlers = rounded_border_handlers,
-        })
-    end,
-    ["rust_analyzer"] = function()
-        require("lspconfig")["rust_analyzer"].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-        })
-    end,
-    ["clangd"] = function()
-        require("lspconfig")["clangd"].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-        })
-	end,
-    ["omnisharp"] = function()
-        require("lspconfig")["omnisharp"].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-            enable_import_completion = true,
-            organize_imports_on_format = true,
-            enable_roslyn_analyzers = true,
-            root_dir = find_dotnet_project_dir(),
-        })
-    end,
-})
+-- require("mason-lspconfig").setup_handlers({
+--     function(server_name)
+--         require("lspconfig")[server_name].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--             handlers = rounded_border_handlers,
+--         })
+--     end,
+--     ["rust_analyzer"] = function()
+--         require("lspconfig")["rust_analyzer"].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--         })
+--     end,
+--     ["clangd"] = function()
+--         require("lspconfig")["clangd"].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--         })
+-- 	end,
+--     ["omnisharp"] = function()
+--         require("lspconfig")["omnisharp"].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--             enable_import_completion = true,
+--             organize_imports_on_format = true,
+--             enable_roslyn_analyzers = true,
+--             root_dir = find_dotnet_project_dir(),
+--         })
+--     end,
+-- })
 vim.cmd [[let g:airline_theme='minimalist']]
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<Leader>d', ':NERDTreeToggle<CR>', {noremap = true, silent = true, desc = "open nerdtree"})
@@ -322,8 +347,8 @@ vim.api.nvim_create_user_command('SvnDiff', function()
 end, {})
 
   -- REGION work / windows config
-
- if vim.fn.has('win32') then
+work = false
+if vim.fn.has('win32') == 1 then
 	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
 	vim.cmd [[set ffs=dos]]
 	vim.cmd [[set shellquote= shellxquote=]]
