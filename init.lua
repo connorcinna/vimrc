@@ -13,7 +13,6 @@ vim.opt.rtp:prepend(lazypath)
 vim.api.nvim_set_hl(0, 'LineNrAbove', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNr', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNrBelow', { fg='#bcbcbc', bold=true })
-work = true
 
 vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappings are correct
 vim.g.gruvbox_material_background = 'hard'
@@ -21,10 +20,40 @@ vim.cmd [[set relativenumber]]
 vim.cmd [[set nohls]]
 vim.cmd [[set noea]]
 vim.cmd [[set nobomb]]
+vim.o.clipboard = "unnamedplus"
+
+local function paste()
+  return {
+    vim.fn.split(vim.fn.getreg(""), "\n"),
+    vim.fn.getregtype(""),
+  }
+end
+
+vim.g.clipboard = {
+  name = "OSC 52",
+
+  copy = {
+    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+  },
+  paste = {
+    ["+"] = paste,
+    ["*"] = paste,
+  },
+}
+vim.cmd [[hi clear MatchParen]]
+
 require("lazy").setup({
   "neovim/nvim-lspconfig",
   'nvim-lua/plenary.nvim',
   'nvim-telescope/telescope.nvim',
+   {
+       "seblj/roslyn.nvim",
+       ft = "cs",
+       opts = {
+           broad_search = true,
+       }
+   },
   "mfussenegger/nvim-dap",
   "tpope/vim-repeat",
   {
@@ -35,15 +64,6 @@ require("lazy").setup({
   {
 	  "mason-org/mason.nvim",
 	  opts = {}
-  },
-  {
-      "seblyng/roslyn.nvim",
-      ---@module 'roslyn.config'
-      ---@type RoslynNvimConfig
-      opts = {
-          broad_seardch = true
-          -- your configuration comes here; leave empty for default settings
-      },
   },
   "scrooloose/nerdtree",
   "tmhedberg/matchit",
@@ -68,7 +88,7 @@ require("lazy").setup({
   "hrsh7th/nvim-cmp",
   {
 	  "williamboman/mason.nvim",
-	   config = true,
+	  config = true,
   },
   {
 	  "williamboman/mason-lspconfig.nvim",
@@ -81,7 +101,6 @@ require("lazy").setup({
 	  },
   },
 })
-
 
 -- swap to cmd.exe to do a command and then back to powershell
 local function do_cmd(args)
@@ -175,72 +194,46 @@ local function find_clangd_json()
   return nil -- nothing found
 end
 
-require("mason").setup({
-    registries = {
-        "github:mason-org/mason-registry",
-        "github:Crashdummyy/mason-registry",
-    },
-})
-
+require("mason").setup()
 require("mason-lspconfig").setup({
     ensure_installed = {
         "rust_analyzer",
+        "pyright",
     },
 })
-vim.lsp.config('*', {
-    root_markers = { '.git', '.svn' }
-})
+require('lspconfig').pyright.setup({})
 
-vim.lsp.config("roslyn", {
-    cmd = {
-      'dotnet',
-      'C:\\Users\\ccummings\\AppData\\Local\\nvim\\bin\\lib\\net9.0\\Microsoft.CodeAnalysis.LanguageServer.dll',
-      '--logLevel', -- this property is required by the server
-      'Information',
-      '--extensionLogDirectory', -- this property is required by the server
-      vim.fs.joinpath(vim.loop.os_tmpdir(), 'roslyn_ls/logs'),
-      '--stdio',
-    },
-    on_attach = function()
-        print("CONNOR - roslyn connected")
-    end,
-    settings = {
-        ["csharp|inlay_hints"] = {
-            csharp_enable_inlay_hints_for_implicit_object_creation = true,
-            csharp_enable_inlay_hints_for_implicit_variable_types = true,
-        },
-        ["csharp|code_lens"] = {
-            dotnet_enable_references_code_lens = true,
-        },
-    },
-    filtypes = { 'cs', 'sln' , 'csproj' },
-    root_dir = vim.fs.dirname(vim.fs.find(function(name, path)
-                   return name:match(".sln")
-               end, { limit = math.huge, type = 'file' })[1]),
-})
-vim.lsp.enable('roslyn')
-
-require("mason-lspconfig").setup_handlers({
-    function(server_name)
-        require("lspconfig")[server_name].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-            handlers = rounded_border_handlers,
-        })
-    end,
-    ["rust_analyzer"] = function()
-        require("lspconfig")["rust_analyzer"].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-        })
-    end,
-    ["clangd"] = function()
-        require("lspconfig")["clangd"].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-        })
-	end,
-})
+-- require("mason-lspconfig").setup_handlers({
+--     function(server_name)
+--         require("lspconfig")[server_name].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--             handlers = rounded_border_handlers,
+--         })
+--     end,
+--     ["rust_analyzer"] = function()
+--         require("lspconfig")["rust_analyzer"].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--         })
+--     end,
+--     ["clangd"] = function()
+--         require("lspconfig")["clangd"].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--         })
+-- 	end,
+--     ["omnisharp"] = function()
+--         require("lspconfig")["omnisharp"].setup({
+--             on_attach = on_attach,
+--             capabilities = capabilities,
+--             enable_import_completion = true,
+--             organize_imports_on_format = true,
+--             enable_roslyn_analyzers = true,
+--             root_dir = find_dotnet_project_dir(),
+--         })
+--     end,
+-- })
 vim.cmd [[let g:airline_theme='minimalist']]
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<Leader>d', ':NERDTreeToggle<CR>', {noremap = true, silent = true, desc = "open nerdtree"})
@@ -354,8 +347,8 @@ vim.api.nvim_create_user_command('SvnDiff', function()
 end, {})
 
   -- REGION work / windows config
-
- if vim.fn.has('win32') then
+work = false
+if vim.fn.has('win32') == 1 then
 	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
 	vim.cmd [[set ffs=dos]]
 	vim.cmd [[set shellquote= shellxquote=]]
@@ -369,7 +362,6 @@ end, {})
 		      callback = function()
 			  vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
 			  vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name grep -Value rg\r")
-			  vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name which -Value Get-Command\r")
 			  vim.api.nvim_chan_send(vim.bo.channel, "function svndiff\r\n {\r\n param([string]$DiffPath,[string]$Revision)\r\n $Command = 'svn diff -x --ignore-eol-style --patch-compatible'\r\n if ($Revision)\r\n {\r\n $Revisions = $Revision.Split(':')\r\n if (!$Revisions[0] -or !$Revisions[1])\r\n {\r\n echo 'please provide -Revision as an argument in the form \"REVISION1:REVISION2\"'\r\n }\r\n $Command = $('svn diff -r ' + $Revision + ' -x --ignore-eol-style --patch-compatible') \r\n }\r\n if ($DiffPath)\r\n {\r\n $Temp = New-TemporaryFile\r\n $OutFile = $($pwd.Path + '\\' + $DiffPath)\r\n $Command = $($Command + ' > ' + $Temp)\r\n echo $Command\r\n Invoke-Expression $Command\r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r\n else\r\n {\r\n echo $Command\r\n Invoke-Expression $Command\r\n }\r\n }\r")
 			   vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
 		      end, --autocmd callback function
