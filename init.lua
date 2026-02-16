@@ -326,7 +326,7 @@ vim.api.nvim_create_user_command('SvnDiff', function()
 end, {})
 
   -- REGION work / windows config
-  -- work_config is not checked into VC, each new computer using this config must create a work_config.lua file next to this config file
+  -- work_config is not checked into VC, each new computer using this config must create a work_config.lua in your runtimepath
   -- e.g. work_config.lua
   -- local work_config = {}
   --
@@ -368,4 +368,3 @@ if vim.fn.has('win32') == 1 then
 		    }
        end
 end
->>>>>>> 56aa3c59f1c4a7bb9646d5a395f8669aa46f27c7
