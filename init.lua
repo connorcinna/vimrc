@@ -197,15 +197,23 @@ local function find_clangd_json()
 end
 
 require("mason").setup()
-require("mason-lspconfig").setup({
-    ensure_installed = {
-        "rust_analyzer",
-        "pyright",
-        "gopls"
-    },
-})
-vim.lsp.enable({"pyright"})
-vim.lsp.enable({"gopls"})
+if vim.fn.has('win32') == 0 then
+    require("mason-lspconfig").setup({
+        ensure_installed = {
+            "rust_analyzer",
+            "pyright",
+            "gopls"
+        },
+    })
+    vim.lsp.enable({"pyright"})
+    vim.lsp.enable({"gopls"})
+else
+    require("mason-lspconfig").setup({
+        ensure_installed = {
+            "rust_analyzer",
+        },
+    })
+end
 
 vim.cmd [[let g:airline_theme='minimalist']]
 local builtin = require('telescope.builtin')
@@ -318,12 +326,19 @@ vim.api.nvim_create_user_command('SvnDiff', function()
 end, {})
 
   -- REGION work / windows config
-work = false
+  -- work_config is not checked into VC, each new computer using this config must create a work_config.lua file next to this config file
+  -- e.g. work_config.lua
+  -- local work_config = {}
+  --
+  -- work_config.enabled = true
+  --
+  -- return work_config
+local work_config = require('work_config')
 if vim.fn.has('win32') == 1 then
 	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
 	vim.cmd [[set ffs=dos]]
 	vim.cmd [[set shellquote= shellxquote=]]
-	if work then
+	if work_config.enabled then
 		-- the following line doesn't need to have the forward slashes swapped for some reason?
 		vim.opt.rtp:append(vim.fn.stdpath "config" .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
 		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
