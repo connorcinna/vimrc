@@ -20,6 +20,8 @@ vim.cmd [[set relativenumber]]
 vim.cmd [[set nohls]]
 vim.cmd [[set noea]]
 vim.cmd [[set nobomb]]
+vim.cmd('filetype plugin indent on')
+vim.opt.autoindent = true
 vim.o.clipboard = "unnamedplus"
 
 local function paste()
@@ -199,41 +201,12 @@ require("mason-lspconfig").setup({
     ensure_installed = {
         "rust_analyzer",
         "pyright",
+        "gopls"
     },
 })
-require('lspconfig').pyright.setup({})
+vim.lsp.enable({"pyright"})
+vim.lsp.enable({"gopls"})
 
--- require("mason-lspconfig").setup_handlers({
---     function(server_name)
---         require("lspconfig")[server_name].setup({
---             on_attach = on_attach,
---             capabilities = capabilities,
---             handlers = rounded_border_handlers,
---         })
---     end,
---     ["rust_analyzer"] = function()
---         require("lspconfig")["rust_analyzer"].setup({
---             on_attach = on_attach,
---             capabilities = capabilities,
---         })
---     end,
---     ["clangd"] = function()
---         require("lspconfig")["clangd"].setup({
---             on_attach = on_attach,
---             capabilities = capabilities,
---         })
--- 	end,
---     ["omnisharp"] = function()
---         require("lspconfig")["omnisharp"].setup({
---             on_attach = on_attach,
---             capabilities = capabilities,
---             enable_import_completion = true,
---             organize_imports_on_format = true,
---             enable_roslyn_analyzers = true,
---             root_dir = find_dotnet_project_dir(),
---         })
---     end,
--- })
 vim.cmd [[let g:airline_theme='minimalist']]
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<Leader>d', ':NERDTreeToggle<CR>', {noremap = true, silent = true, desc = "open nerdtree"})
@@ -270,7 +243,6 @@ cmp.setup({
     snippet = {
       -- REQUIRED - you must specify a snippet engine
       expand = function(args)
-        vim.fn["vsnip#anonymous"](args.body) -- For `vsnip` users.
         require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
       end,
     },
@@ -287,7 +259,6 @@ cmp.setup({
     }),
     sources = cmp.config.sources({
       { name = 'nvim_lsp' },
-      { name = 'vsnip' }, -- For vsnip users.
       { name = 'luasnip' }, -- For luasnip users.
     }, {
       { name = 'buffer' },
