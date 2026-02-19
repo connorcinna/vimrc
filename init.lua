@@ -106,7 +106,7 @@ require("lazy").setup({
 
 -- swap to cmd.exe to do a command and then back to powershell
 local function do_cmd(args)
-    if vim.fn.has('win32') then
+    if vim.fn.has('win32') == 1 then
         vim.o.shell="C:\\Windows\\System32\\cmd.exe"
         vim.cmd(args)
         vim.o.shell= "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
@@ -117,7 +117,7 @@ end
 
 -- swap to cmd.exe to do a system command and then back to powershell
 local function do_system_cmd(args)
-    if vim.fn.has('win32') then
+    if vim.fn.has('win32') == 1 then
         vim.o.shell="C:\\Windows\\System32\\cmd.exe"
         output = vim.fn.system(args)
         vim.o.shell= "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
@@ -226,12 +226,15 @@ vim.keymap.set('n', '<Leader>r', ':lua vim.diagnostic.open_float()<CR>', {norema
 vim.keymap.set('n', '<C-g>', ':lua vim.lsp.buf.hover()<CR>', {noremap = true, silent = true, desc = "hover actions"})
 vim.keymap.set('n', '<C-h>', ':lua vim.lsp.buf.references()<CR>', {noremap = true, silent = true, desc = "find references"})
 vim.keymap.set('n', 'gd', ':lua vim.lsp.buf.implementation()<CR>', {noremap = true, silent = true, desc = "go to implementation"})
+-- copy full path of current file to external clipboard
 vim.keymap.set('n', '<Leader>yp', function()
     vim.fn.setreg('+', vim.fn.expand('%:p:.'))
 end)
+-- copy full path current directory to external clipboard
 vim.keymap.set('n', '<Leader>yd', function()
     vim.fn.setreg('+', vim.fn.expand('%:h'))
 end)
+-- copy current filename open without extension
 vim.keymap.set('n', '<Leader>yn', function()
     vim.fn.setreg('+', vim.fn.expand('%:t:r'))
 end)
@@ -348,7 +351,7 @@ if vim.fn.has('win32') == 1 then
 		      callback = function()
 			  vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
 			  vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name grep -Value rg\r")
-			  vim.api.nvim_chan_send(vim.bo.channel, "function svndiff\r\n {\r\n param([string]$DiffPath,[string]$Revision)\r\n $Command = 'svn diff -x --ignore-eol-style --patch-compatible'\r\n if ($Revision)\r\n {\r\n $Revisions = $Revision.Split(':')\r\n if (!$Revisions[0] -or !$Revisions[1])\r\n {\r\n echo 'please provide -Revision as an argument in the form \"REVISION1:REVISION2\"'\r\n }\r\n $Command = $('svn diff -r ' + $Revision + ' -x --ignore-eol-style --patch-compatible') \r\n }\r\n if ($DiffPath)\r\n {\r\n $Temp = New-TemporaryFile\r\n $OutFile = $($pwd.Path + '\\' + $DiffPath)\r\n $Command = $($Command + ' > ' + $Temp)\r\n echo $Command\r\n Invoke-Expression $Command\r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r\n else\r\n {\r\n echo $Command\r\n Invoke-Expression $Command\r\n }\r\n }\r")
+			  vim.api.nvim_chan_send(vim.bo.channel, "function svndiff\r\n {\r\n param([string]$P,[string]$Revision)\r\n $Command = 'svn diff -x --ignore-eol-style --patch-compatible'\r\n if ($Revision)\r\n {\r\n $Revisions = $Revision.Split(':')\r\n if (!$Revisions[0] -or !$Revisions[1])\r\n {\r\n echo 'please provide -Revision as an argument in the form \"REVISION1:REVISION2\"'\r\n }\r\n $Command = $('svn diff -r ' + $Revision + ' -x --ignore-eol-style --patch-compatible') \r\n }\r\n if ($P)\r\n {\r\n $Temp = New-TemporaryFile\r\n $OutFile = $($pwd.Path + '\\' + $P)\r\n $Command = $($Command + ' > ' + $Temp)\r\n echo $Command\r\n Invoke-Expression $Command\r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r\n else\r\n {\r\n echo $Command\r\n Invoke-Expression $Command\r\n }\r\n }\r")
 			   vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
 		      end, --autocmd callback function
 		    })
