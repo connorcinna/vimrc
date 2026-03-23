@@ -11,15 +11,16 @@ function shell.do_cmd(args)
     end
 end
 
--- swap to cmd.exe to do a system command and then back to powershell
+-- swap to cmd.exe to do a synchronous system command and then back to powershell
 function shell.do_system_cmd(args)
     if vim.fn.has('win32') == 1 then
         vim.o.shell="C:\\Windows\\System32\\cmd.exe"
-        output = vim.fn.system(args)
+        local output = vim.fn.system(args)
         vim.o.shell= "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
         return output
     else
-        return vim.fn.system(args)
+        local output = vim.fn.system(args)
+        return output
     end
 end
 
