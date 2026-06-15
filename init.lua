@@ -19,7 +19,6 @@ vim.g.gruvbox_material_background = 'hard'
 vim.cmd [[set relativenumber]]
 vim.cmd [[set nohls]]
 vim.cmd [[set noea]]
-vim.cmd [[set nobomb]]
 vim.cmd('filetype plugin indent on')
 vim.opt.autoindent = true
 vim.o.clipboard = "unnamedplus"
@@ -180,13 +179,13 @@ local function find_clangd_json()
   return nil -- nothing found
 end
 
-require("mason").setup()
 local work_config = require('work_config')
 vim.lsp.config('*', {
     root_markers = { '.git', '.svn' },
     capabilities = capabilities,
 })
 if vim.fn.has('win32') == 0 then
+    require("mason").setup()
     require("mason-lspconfig").setup({
         ensure_installed = {
             "rust_analyzer",
@@ -217,7 +216,7 @@ else
                     dotnet_enable_references_code_lens = true,
                 },
             },
-            filetypes = { 'cs', 'sln' , 'csproj' },
+            filetypes = { 'cs', 'sln', 'csproj' },
             root_dir = vim.fs.dirname(vim.fs.find(function(name, path)
                            return name:match(".sln")
                        end, { limit = math.huge, type = 'file' })[1]),
@@ -236,10 +235,11 @@ vim.keymap.set('n', '<Leader>fb', builtin.current_buffer_fuzzy_find, {noremap = 
 vim.keymap.set('n', '<Leader>fcw', ':lua require("telescope.builtin").grep_string({search = vim.fn.expand("<cword>")})<CR>', {noremap = true, silent = true, desc = "telescope find current word"})
 require('telescope').setup({})
 -- LSP Keybinds
-vim.keymap.set('n', '<Leader>r', ':lua vim.diagnostic.open_float()<CR>', {noremap = true, silent = true, desc = "diagnostics popup"})
-vim.keymap.set('n', '<C-g>', ':lua vim.lsp.buf.hover()<CR>', {noremap = true, silent = true, desc = "hover actions"})
-vim.keymap.set('n', '<C-h>', ':lua vim.lsp.buf.references()<CR>', {noremap = true, silent = true, desc = "find references"})
-vim.keymap.set('n', 'gd', ':lua vim.lsp.buf.implementation()<CR>', {noremap = true, silent = true, desc = "go to implementation"})
+vim.keymap.set('n', '<Leader>lh', ':lua vim.diagnostic.open_float()<CR>', {noremap = true, silent = true, desc = "diagnostics popup"})
+vim.keymap.set('n', '<Leader>li', ':lua vim.lsp.buf.hover()<CR>', {noremap = true, silent = true, desc = "hover actions"})
+vim.keymap.set('n', '<Leader>lr', ':lua vim.lsp.buf.references()<CR>', {noremap = true, silent = true, desc = "find references"})
+vim.keymap.set('n', '<Leader>ld', ':lua vim.lsp.buf.implementation()<CR>', {noremap = true, silent = true, desc = "go to implementation"})
+vim.keymap.set('n', '<Leader>ln', ':lua vim.lsp.buf.rename()<CR>', {noremap = true, silent = true, desc = "rename"})
 -- copy full path of current file to external clipboard
 vim.keymap.set('n', '<Leader>yp', function()
     vim.fn.setreg('+', vim.fn.expand('%:p:.'))
@@ -357,35 +357,24 @@ if vim.fn.has('win32') == 1 then
 	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
 	vim.cmd [[set ffs=dos]]
 	vim.cmd [[set shellquote= shellxquote=]]
+    vim.opt.bomb = true
 	if work_config.enabled then
-		-- the following line doesn't need to have the forward slashes swapped for some reason?
 		vim.opt.rtp:append(vim.fn.stdpath "config" .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
 		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
+		vim.env.RBTOOLS_CONFIG_PATH = "C:\\Users\\ccummings"
 	    vim.api.nvim_set_current_dir("C:\\projects\\")
 		--DIY powershell profile.. avert your eyes
 		 vim.api.nvim_create_autocmd('TermOpen', {
 		      callback = function()
 			  vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
 			  vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name grep -Value rg\r")
-              vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name find -Value 'Get-ChildItem -Path '\r")
+              vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name find -Value 'Get-ChildItem -Path . -File -Recurse -Filter '\r")
+              vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name realpath -Value 'Resolve-Path '\r")
+              vim.api.nvim_chan_send(vim.bo.channel, "function rbpost ($R) { svn diff -x --ignore-eol-style --patch-compatible | rbt post-this -r $R}")
 			  vim.api.nvim_chan_send(vim.bo.channel, "function svndiff\r\n {\r\n param([string]$P,[string]$Revision)\r\n $Command = 'svn diff -x --ignore-eol-style --patch-compatible'\r\n if ($Revision)\r\n {\r\n $Revisions = $Revision.Split(':')\r\n if (!$Revisions[0] -or !$Revisions[1])\r\n {\r\n echo 'please provide -Revision as an argument in the form \"REVISION1:REVISION2\"'\r\n }\r\n $Command = $('svn diff -r ' + $Revision + ' -x --ignore-eol-style --patch-compatible') \r\n }\r\n if ($P)\r\n {\r\n $Temp = New-TemporaryFile\r\n $OutFile = $($pwd.Path + '\\' + $P)\r\n $Command = $($Command + ' > ' + $Temp)\r\n echo $Command\r\n Invoke-Expression $Command\r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r\n else\r\n {\r\n echo $Command\r\n Invoke-Expression $Command\r\n }\r\n }\r")
 			   vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
 		      end, --autocmd callback function
 		    })
-		    -- local dap = require('dap')
-		    -- dap.adapters.coreclr = {
-		    --           type = "executable",
-		    --           command = "C:\\Users\\ccummings\\AppData\\Local\\nvim-data\\mason\\packages\\netcoredbg\\netcoredbg\\netcoredbg.exe",
-		    --           args = { "--interpreter=vscode" },
-		    -- }
-		    -- dap.configurations.cs = {
-		    --           type = "coreclr",
-		    --           name = "launch - netcoredbg",
-		    --           request = "launch",
-		    --           program = function()
-		    --               return vim.fn.input('Path to dll', vim.fn.getcwd() .. '/GameServer_Kit/Setup/Intermediate/', 'file')
-		    --           end,
-		    -- }
        end
 end
 

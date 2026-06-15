@@ -70,6 +70,7 @@ local function _up(buf_id, win_id, commit_hook)
     local output_table = string_to_table(output)
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, output_table)
     if commit_hook then
+        --TODO check if we need to resolve first
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, {"Update finished - enter commit mesage:"})
         -- create empty line so that we can place the cursor on it
         vim.api.nvim_buf_set_lines(buf, -1, -1, false, {""})
@@ -170,9 +171,9 @@ end
 
 local function commit(opts)
     local buf = vim.api.nvim_create_buf(false, true)
+    window_opts.title = "SVN Commit"
     local win = vim.api.nvim_open_win(buf, 0, window_opts)
     vim.api.nvim_buf_set_name(buf, 'svn_commit')
-    window_opts.title = "SVN Commit"
     vim.keymap.set('n', 'q', function()
         vim.api.nvim_buf_delete(buf, {force = true})
         vim.api.nvim_win_close(win, {force = true})
@@ -181,8 +182,10 @@ local function commit(opts)
     end, {buffer = true})
     vim.keymap.set('i', '<CR>', function()
         local buf_text = vim.api.nvim_buf_get_lines(buf, 1, -1, false)
-        local output = shell.do_system_cmd('svn commit -m ' .. buf_text[1])
+        local output = shell.do_system_cmd('svn commit -m "' .. buf_text[1] .. '"')
         local output_table = string_to_table(output)
+        local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
+        vim.api.nvim_feedkeys(esc, 'i', false)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, output_table)
         vim.api.nvim_buf_set_lines(buf, -1, -1, false, {"Press 'q' to exit."})
     end, {buffer = true})
@@ -228,6 +231,10 @@ local function diff()
         local line = string.sub(line, STATUS_COL_LENGTH)
         local buf = vim.api.nvim_create_buf(false, true)
         local pristine_copy = shell.do_system_cmd('svn cat ' .. line)
+        --E200009 - new file, nothing to diff against
+        if (string.find(pristine_copy, "E200009")) then
+            pristine_copy = "New File - Nothing to diff against"
+        end
         local pristine_copy_table = string_to_table(pristine_copy)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, pristine_copy_table)
         local filetype = vim.api.nvim_get_option_value('filetype', {scope = 'local'})
@@ -235,9 +242,16 @@ local function diff()
         vim.api.nvim_set_option_value('filetype', filetype, {buf = buf})
         shell.do_cmd(string.format("tabnew %s", line))
         --from this point on current window and buffer is a new tab
-        local left_win = vim.api.nvim_get_current_win()
-        local right_win = vim.api.nvim_open_win(buf, 0, {split = 'right', win = 0})
+        local right_win = vim.api.nvim_get_current_win()
+        local left_win = vim.api.nvim_open_win(buf, 0, {split = 'left', win = 0})
         --set all related diff options for each tab
+        vim.api.nvim_set_option_value('diff', true, {win = right_win})
+        vim.api.nvim_set_option_value('scrollbind', true, {win = right_win})
+        vim.api.nvim_set_option_value('cursorbind', true, {win = right_win})
+        vim.api.nvim_set_option_value('wrap', false, {win = right_win})
+        vim.api.nvim_set_option_value('foldmethod', 'diff', {win = right_win})
+        vim.api.nvim_set_option_value('foldcolumn', '2', {win = right_win})
+
         vim.api.nvim_set_option_value('diff', true, {win = left_win})
         vim.api.nvim_set_option_value('scrollbind', true, {win = left_win})
         vim.api.nvim_set_option_value('cursorbind', true, {win = left_win})
@@ -245,12 +259,7 @@ local function diff()
         vim.api.nvim_set_option_value('foldmethod', 'diff', {win = left_win})
         vim.api.nvim_set_option_value('foldcolumn', '2', {win = left_win})
 
-        vim.api.nvim_set_option_value('diff', true, {win = right_win})
-        vim.api.nvim_set_option_value('scrollbind', true, {win = right_win})
-        vim.api.nvim_set_option_value('cursorbind', true, {win = right_win})
-        vim.api.nvim_set_option_value('wrap', false, {win = right_win})
-        vim.api.nvim_set_option_value('foldmethod', 'diff', {win = right_win})
-        vim.api.nvim_set_option_value('foldcolumn', '2', {win = right_win})
+        vim.api.nvim_set_current_win(right_win)
     end
 end
 
@@ -268,7 +277,7 @@ local function resolve()
         local line = string.sub(line, STATUS_COL_LENGTH)
         shell.do_cmd(string.format("tabnew %s", line)) -- local changes
         -- TODO how to get the local files with rev number created by up()
-        shell.do_cmd(string.format("vert diffsplit %s.tmp", line)) --incoming changes
+        -- shell.do_cmd(string.format("vert diffsplit %s.tmp", line)) --incoming changes
     end
     for index, line in ipairs(conflicted_table) do
         local tmp_file = string.format("%s.tmp")
