@@ -1,4 +1,4 @@
-﻿$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
+$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 
 function realpath {
     Resolve-Path $args[0]
@@ -39,4 +39,4 @@ function svndiff {
         Invoke-Expression $Command
     }
 }
-clear\r
+clear
