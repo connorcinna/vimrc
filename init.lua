@@ -363,19 +363,19 @@ if vim.fn.has('win32') == 1 then
 		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
 		vim.env.RBTOOLS_CONFIG_PATH = "C:\\Users\\ccummings"
 	    vim.api.nvim_set_current_dir("C:\\projects\\")
-		--DIY powershell profile.. avert your eyes
+		--DIY powershell profile
 		 vim.api.nvim_create_autocmd('TermOpen', {
 		      callback = function()
-			  vim.api.nvim_chan_send(vim.bo.channel, "$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'\r")
-			  vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name grep -Value rg\r")
-              vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name find -Value 'Get-ChildItem -Path . -File -Recurse -Filter '\r")
-              vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name realpath -Value 'Resolve-Path '\r")
-              -- vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name svnurl -Value 'svn info | sls \"^URL:\\s(.+)$\" | ForEach-Object {$_.Matches[0].Groups[1].Value } | Set-Clipboard'\r")
-              vim.api.nvim_chan_send(vim.bo.channel, "function svnurl { svn info | sls \"^URL:\\s(.+)$\" | ForEach-Object {$_.Matches[0].Groups[1].Value } | Set-Clipboard } \r")
-			  vim.api.nvim_chan_send(vim.bo.channel, "function svndiff\r\n {\r\n param([string]$P,[string]$Revision)\r\n $Command = 'svn diff -x --ignore-eol-style --patch-compatible'\r\n if ($Revision)\r\n {\r\n $Revisions = $Revision.Split(':')\r\n if (!$Revisions[0] -or !$Revisions[1])\r\n {\r\n echo 'please provide -Revision as an argument in the form \"REVISION1:REVISION2\"'\r\n }\r\n $Command = $('svn diff -r ' + $Revision + ' -x --ignore-eol-style --patch-compatible') \r\n }\r\n if ($P)\r\n {\r\n $Temp = New-TemporaryFile\r\n $OutFile = $($pwd.Path + '\\' + $P)\r\n $Command = $($Command + ' > ' + $Temp)\r\n echo $Command\r\n Invoke-Expression $Command\r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r\n else\r\n {\r\n echo $Command\r\n Invoke-Expression $Command\r\n }\r\n }\r")
-			   vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
-		      end, --autocmd callback function
-		    })
+                  local txt = vim.fs.dirname(vim.env.MYVIMRC) .. "/powershell_profile.ps1"
+                  print(txt)
+                  local file, err = io.open(txt, "rb")
+                  if file then
+                      local ps_profile = file:read("*a")
+                      file:close()
+                      vim.api.nvim_chan_send(vim.bo.channel, ps_profile)
+                  end
+              end, --autocmd callback function
+	    })
        end
 end
 
