@@ -296,7 +296,7 @@ ls.add_snippets("cs", {
 })
 
 vim.o.background = "dark"
-vim.cmd [[colorscheme fleur]]
+vim.cmd [[colorscheme lackluster]]
 
 vim.cmd [[set shiftwidth=4]]
 vim.cmd [[set tabstop=4 ]]
@@ -370,7 +370,8 @@ if vim.fn.has('win32') == 1 then
 			  vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name grep -Value rg\r")
               vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name find -Value 'Get-ChildItem -Path . -File -Recurse -Filter '\r")
               vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name realpath -Value 'Resolve-Path '\r")
-              vim.api.nvim_chan_send(vim.bo.channel, "function rbpost ($R) { svn diff -x --ignore-eol-style --patch-compatible | rbt post-this -r $R}")
+              -- vim.api.nvim_chan_send(vim.bo.channel, "Set-Alias -Name svnurl -Value 'svn info | sls \"^URL:\\s(.+)$\" | ForEach-Object {$_.Matches[0].Groups[1].Value } | Set-Clipboard'\r")
+              vim.api.nvim_chan_send(vim.bo.channel, "function svnurl { svn info | sls \"^URL:\\s(.+)$\" | ForEach-Object {$_.Matches[0].Groups[1].Value } | Set-Clipboard } \r")
 			  vim.api.nvim_chan_send(vim.bo.channel, "function svndiff\r\n {\r\n param([string]$P,[string]$Revision)\r\n $Command = 'svn diff -x --ignore-eol-style --patch-compatible'\r\n if ($Revision)\r\n {\r\n $Revisions = $Revision.Split(':')\r\n if (!$Revisions[0] -or !$Revisions[1])\r\n {\r\n echo 'please provide -Revision as an argument in the form \"REVISION1:REVISION2\"'\r\n }\r\n $Command = $('svn diff -r ' + $Revision + ' -x --ignore-eol-style --patch-compatible') \r\n }\r\n if ($P)\r\n {\r\n $Temp = New-TemporaryFile\r\n $OutFile = $($pwd.Path + '\\' + $P)\r\n $Command = $($Command + ' > ' + $Temp)\r\n echo $Command\r\n Invoke-Expression $Command\r\n $Content = [IO.File]::ReadAllLines($Temp)\r\n [IO.File]::WriteAllLines($OutFile,$Content)}\r\n else\r\n {\r\n echo $Command\r\n Invoke-Expression $Command\r\n }\r\n }\r")
 			   vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
 		      end, --autocmd callback function
