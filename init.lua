@@ -367,16 +367,16 @@ if vim.fn.has('win32') == 1 then
 		 vim.api.nvim_create_autocmd('TermOpen', {
 		      callback = function()
                   local txt = vim.fs.dirname(vim.env.MYVIMRC) .. "/powershell_profile.ps1"
-                  print(txt)
                   local file, err = io.open(txt, "rb")
                   if file then
                       local ps_profile = file:read("*a")
-                      file:close()
                       vim.api.nvim_chan_send(vim.bo.channel, ps_profile)
+                      vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
+                      file:close()
                   end
               end, --autocmd callback function
-	    })
-       end
+	     })
+    end
 end
 
   -- Set up cmp with lsp

@@ -39,4 +39,3 @@ function svndiff {
         Invoke-Expression $Command
     }
 }
-clear
