@@ -77,7 +77,7 @@ local function _up(buf_id, win_id, commit_hook)
         vim.api.nvim_win_set_cursor(win, {2, 0})
         vim.api.nvim_feedkeys("i", "n", false)
     else
-        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {"Update finished, press 'q' to exit."})
+        vim.api.nvim_buf_set_lines(buf, -1, -1, false, {"Update finished, press 'q' to exit."})
     end
 end
 
@@ -139,6 +139,38 @@ local function _status()
     window_opts.title = string.format('SVN Status: %s', vim.fn.getcwd())
     local win = vim.api.nvim_open_win(buf, 0, window_opts)
     vim.fn.jobstart({"svn", "status"},
+    {
+        on_stdout = function(_, data)
+            vim.schedule(function()
+                if data then
+                    data = filter_from_table(data, "\r")
+                    vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
+                end
+            end)
+        end,
+        on_stderr = function(_, data)
+            vim.schedule(function()
+                if data then
+                    data = filter_from_table(data, "\r")
+                    vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
+                end
+            end)
+        end,
+        stdout_buffered = false,
+        stderr_buffered = false,
+    })
+    vim.keymap.set('n', 'q', function()
+        vim.api.nvim_win_close(win, {force = true})
+        vim.api.nvim_buf_delete(buf, {force = true})
+    end, {buffer = true})
+end
+
+local function _info()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_name(buf, 'svn_info')
+    window_opts.title = string.format('SVN Info: %s', vim.fn.getcwd())
+    local win = vim.api.nvim_open_win(buf, 0, window_opts)
+    vim.fn.jobstart({"svn", "info"},
     {
         on_stdout = function(_, data)
             vim.schedule(function()
@@ -293,6 +325,10 @@ local function status(opts)
     _status()
 end
 
+local function info(opts)
+    _info()
+end
+
 vim.api.nvim_create_user_command('SvnCommit', commit, {})
 vim.api.nvim_create_user_command('SvnDiff', diff, {})
 vim.api.nvim_create_user_command('SvnBlame', blame, {})
@@ -300,5 +336,6 @@ vim.api.nvim_create_user_command('SvnLog', log, {})
 vim.api.nvim_create_user_command('SvnUp', up, {})
 vim.api.nvim_create_user_command('SvnCheck', check_updates, {})
 vim.api.nvim_create_user_command('SvnStatus', status, {})
+vim.api.nvim_create_user_command('SvnInfo', info, {})
 
 return svn
