@@ -46,6 +46,14 @@ local function filter_from_table(t, remove)
     return new_t
 end
 
+local function split(str, sep)
+    local t = {}
+    for s in string.gmatch(str, "([^" .. sep .. "]+)" ) do
+        table.insert(t, s)
+    end
+    return t
+end
+
 -- update with '--accept postpone' and resolve in resolve()
 local function _up(buf_id, win_id, commit_hook)
     local buf = -1
@@ -296,25 +304,57 @@ local function diff()
 end
 
 local function resolve()
-    local modified = shell.do_system_cmd('svn status --quiet')
-    local conflicted_table = {}
+    local modified = shell.do_system_cmd('svn status')
+    local conflicts = {}
+    local current = nil
     for line in modified:gmatch("[^\r\n]+") do
-        -- look for conflict marker
-        local line = string.sub(line, STATUS_COL_LENGTH)
-        if string.find(line, "C") then
-            table.insert(conflicted_table, line)
+        if line:match("^C%s+") then
+            current = {
+                conflict = line:match("^C%s+(.+)$"),
+                files = {},
+            }
+            table.insert(conflicts, current)
+        elseif current then
+            local path = line:match("^%?%s+(.+)$")
+            if path then
+                table.insert(current.files, path)
+            end
         end
-    end
-    for index, line in ipairs(conflicted_table) do
-        local line = string.sub(line, STATUS_COL_LENGTH)
-        shell.do_cmd(string.format("tabnew %s", line)) -- local changes
-        -- TODO how to get the local files with rev number created by up()
-        -- shell.do_cmd(string.format("vert diffsplit %s.tmp", line)) --incoming changes
-    end
-    for index, line in ipairs(conflicted_table) do
-        local tmp_file = string.format("%s.tmp")
-        shell.do_system_cmd({'rm'}, {tmp_file})
-    end
+     end
+
+  for _, conflict in ipairs(conflicts) do
+      if #conflict.files == 3 then
+          local mine
+          local others = {}
+
+          for _, path in ipairs(conflict.files) do
+              if path:match("%.mine$") then
+                  mine = path
+              else
+                  table.insert(others, path)
+              end
+          end
+          if mine and #others == 2 then
+              --new tab 1st revision, hsplit with `mine`, move up, vsplit with 2nd revision
+              vim.cmd("tabnew " .. vim.fn.fnameescape(others[1]))
+              vim.cmd("split " .. vim.fn.fnameescape(mine))
+              vim.cmd("wincmd J")
+              vim.cmd("wincmd k")
+              vim.cmd("vertical diffsplit " .. vim.fn.fnameescape(others[2]))
+              vim.cmd("wincmd L")
+              vim.cmd("wincmd h")
+              vim.cmd("wincmd j")
+              vim.cmd("wincmd J")
+
+              -- Enable diff mode in all windows
+              vim.cmd("diffthis")
+              vim.cmd("wincmd h")
+              vim.cmd("diffthis")
+              vim.cmd("wincmd j")
+              vim.cmd("diffthis")
+          end
+      end
+  end
 end
 
 local function blame()
@@ -337,5 +377,6 @@ vim.api.nvim_create_user_command('SvnUp', up, {})
 vim.api.nvim_create_user_command('SvnCheck', check_updates, {})
 vim.api.nvim_create_user_command('SvnStatus', status, {})
 vim.api.nvim_create_user_command('SvnInfo', info, {})
+vim.api.nvim_create_user_command('SvnResolve', resolve, {})
 
 return svn
