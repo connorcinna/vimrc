@@ -1,3 +1,5 @@
+$env:PATH += ";C:\Users\ccummings\.local\bin"
+
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 
 function realpath {
@@ -10,8 +12,28 @@ function svnurl {
 }
 
 function findgame {
-    Get-ChildItem -Path G:\BuildStaging\GTI_Kit_Builds -Filter "*$($args[0])*.tar.enc" -Recurse -Name | Select-Object -First 1 | Tee-Object -Variable "copied" | Set-Clipboard;
-    $copied
+    param(
+    [Parameter(Mandatory)]
+    [string]$Name,
+
+    [string]$Contains
+    )
+    $filter = if ($Contains) {
+        "*$Name*$Contains*.tar.enc"
+    }
+    else {
+        "*$Name*.tar.enc"
+    }
+    Get-ChildItem -Path G:\BuildStaging\GTI_Kit_Builds -Filter $filter -Recurse | Select-Object -First 1 -ExpandProperty FullName | Tee-Object -Variable "copied" | Set-Clipboard; $copied
+}
+
+function findlatestplayer {
+    param(
+    [Parameter(Mandatory)]
+    [string]$Name
+    )
+
+    Get-ChildItem -Path G:\Platform_Builds\Player_Kit_Builds\Built_Kits\$Name -Recurse -Filter "*.tar.enc" 2>$null | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName | Tee-Object -Variable "copied" | Set-Clipboard; $copied
 }
 
 function svndiff {
@@ -35,7 +57,7 @@ function svndiff {
         [IO.File]::WriteAllLines($OutFile, $Content)
     }
     else {
-        echo $Command
+        $Command = $($Command + ' | bat')
         Invoke-Expression $Command
     }
 }

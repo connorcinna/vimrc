@@ -9,41 +9,33 @@ if not vim.loop.fs_stat(lazypath) then
     lazypath,
   })
 end
+-- my own imports
+local work_config = require('work_config')
+require('svn')
+
+-- general options
 vim.opt.rtp:prepend(lazypath)
 vim.api.nvim_set_hl(0, 'LineNrAbove', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNr', { fg='#bcbcbc', bold=true })
 vim.api.nvim_set_hl(0, 'LineNrBelow', { fg='#bcbcbc', bold=true })
 
 vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappings are correct
-vim.g.gruvbox_material_background = 'hard'
 vim.cmd [[set relativenumber]]
 vim.cmd [[set nohls]]
 vim.cmd [[set noea]]
 vim.cmd('filetype plugin indent on')
+vim.cmd [[hi clear MatchParen]]
+vim.cmd [[let g:airline_theme='minimalist']]
 vim.opt.autoindent = true
 vim.o.clipboard = "unnamedplus"
+vim.opt.termguicolors = true
+vim.o.background = "dark"
 
-local function paste()
-  return {
-    vim.fn.split(vim.fn.getreg(""), "\n"),
-    vim.fn.getregtype(""),
-  }
-end
+vim.cmd [[set shiftwidth=4]]
+vim.cmd [[set tabstop=4 ]]
+vim.cmd [[set expandtab ]]
 
-vim.g.clipboard = {
-  name = "OSC 52",
-
-  copy = {
-    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
-    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
-  },
-  paste = {
-    ["+"] = paste,
-    ["*"] = paste,
-  },
-}
-vim.cmd [[hi clear MatchParen]]
-
+-- packages
 require("lazy").setup({
   "neovim/nvim-lspconfig",
   'nvim-lua/plenary.nvim',
@@ -108,78 +100,113 @@ require("lazy").setup({
       require("roslyn_filewatch").setup()
     end,
   },
+  {'akinsho/bufferline.nvim', version = "*", dependencies = 'nvim-tree/nvim-web-devicons'},
 })
 
-local function find_dotnet_project_dir()
-  local uv = vim.loop
-  local cwd = vim.fn.getcwd()
+-- config that has to happen after packages
 
-  -- Helper to check if a directory contains a .sln or .csproj file
-  local function contains_dotnet_file(dir)
-    local full_path = cwd .. "/" .. dir
-    local handle = uv.fs_scandir(full_path)
-    if not handle then return false end
+vim.cmd [[colorscheme lackluster]]
+local bufferline = require("bufferline")
+bufferline.setup {
+    options = {
+        mode = "tabs",
+        style_preset = bufferline.style_preset.minimal,
+    },
+}
 
-    while true do
-      local name, type = uv.fs_scandir_next(handle)
-      if not name then break end
-      if type == "file" and (name:match("%.sln$") or name:match("%.csproj$")) then
-        return true
-      end
-    end
-    return false
-  end
-
-  -- Scan subdirectories of cwd
-  local handle = uv.fs_scandir(cwd)
-  if not handle then return nil end
-
-  while true do
-    local name, type = uv.fs_scandir_next(handle)
-    if not name then break end
-    if type == "directory" and contains_dotnet_file(name) then
-      return name
-    end
-  end
-
-  return nil -- nothing found
+-- copy and paste between ssh windows
+local function paste()
+  return {
+    vim.fn.split(vim.fn.getreg(""), "\n"),
+    vim.fn.getregtype(""),
+  }
 end
 
-local function find_clangd_json()
-  local uv = vim.loop
-  local cwd = vim.fn.getcwd()
+vim.g.clipboard = {
+  name = "OSC 52",
 
-  -- Helper to check if a directory contains a compile_commands.json file
-  local function contains_compile_commands_json(dir)
-    local full_path = cwd .. "/" .. dir
-    local handle = uv.fs_scandir(full_path)
-    if not handle then return false end
+  copy = {
+    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+  },
+  paste = {
+    ["+"] = paste,
+    ["*"] = paste,
+  },
+}
 
-    while true do
-      local name, type = uv.fs_scandir_next(handle)
-      if not name then break end
-      if type == "file" and (name:match("compile_commands.json")) then
-        return true
-      end
-    end
-    return false
-  end
+-- helper functions
 
-  -- Scan subdirectories of cwd
-  local handle = uv.fs_scandir(cwd)
-  if not handle then return nil end
+-- local function find_dotnet_project_dir()
+--   local uv = vim.loop
+--   local cwd = vim.fn.getcwd()
+--
+--   -- Helper to check if a directory contains a .sln or .csproj file
+--   local function contains_dotnet_file(dir)
+--     local full_path = cwd .. "/" .. dir
+--     local handle = uv.fs_scandir(full_path)
+--     if not handle then return false end
+--
+--     while true do
+--       local name, type = uv.fs_scandir_next(handle)
+--       if not name then break end
+--       if type == "file" and (name:match("%.sln$") or name:match("%.csproj$")) then
+--         return true
+--       end
+--     end
+--     return false
+--   end
+--
+--   -- Scan subdirectories of cwd
+--   local handle = uv.fs_scandir(cwd)
+--   if not handle then return nil end
+--
+--   while true do
+--     local name, type = uv.fs_scandir_next(handle)
+--     if not name then break end
+--     if type == "directory" and contains_dotnet_file(name) then
+--       return name
+--     end
+--   end
+--
+--   return nil -- nothing found
+-- end
+--
+-- local function find_clangd_json()
+--   local uv = vim.loop
+--   local cwd = vim.fn.getcwd()
+--
+--   -- Helper to check if a directory contains a compile_commands.json file
+--   local function contains_compile_commands_json(dir)
+--     local full_path = cwd .. "/" .. dir
+--     local handle = uv.fs_scandir(full_path)
+--     if not handle then return false end
+--
+--     while true do
+--       local name, type = uv.fs_scandir_next(handle)
+--       if not name then break end
+--       if type == "file" and (name:match("compile_commands.json")) then
+--         return true
+--       end
+--     end
+--     return false
+--   end
+--
+--   -- Scan subdirectories of cwd
+--   local handle = uv.fs_scandir(cwd)
+--   if not handle then return nil end
+--
+--   while true do
+--     local name, type = uv.fs_scandir_next(handle)
+--     if not name then break end
+--     if type == "directory" and contains_compile_commands_json(name) then
+--       return name
+--     end
+--   end
+--   return nil -- nothing found
+-- end
 
-  while true do
-    local name, type = uv.fs_scandir_next(handle)
-    if not name then break end
-    if type == "directory" and contains_compile_commands_json(name) then
-      return name
-    end
-  end
-  return nil -- nothing found
-end
-
-local work_config = require('work_config')
+-- lsp
 vim.lsp.config('*', {
     root_markers = { '.git', '.svn' },
     capabilities = capabilities,
@@ -195,6 +222,7 @@ if vim.fn.has('win32') == 0 then
     })
     vim.lsp.enable({"pyright"})
     vim.lsp.enable({"gopls"})
+    vim.lsp.enable({"rust_analyzer"})
 else
     if work_config.enabled then
         vim.lsp.config("roslyn", {
@@ -225,7 +253,8 @@ else
     end
 end
 
-vim.cmd [[let g:airline_theme='minimalist']]
+-- keybinds
+
 -- File find keybinds
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<Leader>d', ':NERDTreeToggle<CR>', {noremap = true, silent = true, desc = "open nerdtree"})
@@ -252,6 +281,8 @@ end)
 vim.keymap.set('n', '<Leader>yn', function()
     vim.fn.setreg('+', vim.fn.expand('%:t:r'))
 end)
+
+-- snippets
 local ls = require("luasnip")
 -- LuaSnip snippet for C# XML documentation comments
 local s = ls.snippet
@@ -295,15 +326,9 @@ ls.add_snippets("cs", {
   }),
 })
 
-vim.o.background = "dark"
-vim.cmd [[colorscheme lackluster]]
 
-vim.cmd [[set shiftwidth=4]]
-vim.cmd [[set tabstop=4 ]]
-vim.cmd [[set expandtab ]]
+-- autocomplete
 
-
-require('svn')
 local cmp = require'cmp'
 
 cmp.setup({
@@ -353,6 +378,10 @@ cmp.setup({
     matching = { disallow_symbol_nonprefix_matching = false }
   })
 
+-- Set up cmp with lsp
+local capabilities = require('cmp_nvim_lsp').default_capabilities()
+
+-- windows / work config
 if vim.fn.has('win32') == 1 then
 	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
 	vim.cmd [[set ffs=dos]]
@@ -378,6 +407,3 @@ if vim.fn.has('win32') == 1 then
 	     })
     end
 end
-
-  -- Set up cmp with lsp
-  local capabilities = require('cmp_nvim_lsp').default_capabilities()
