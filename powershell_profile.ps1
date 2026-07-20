@@ -3,12 +3,11 @@ $env:PATH += ";C:\Users\ccummings\.local\bin"
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 
 function realpath {
-    Resolve-Path $args[0]
+    Resolve-Path $args[0] | Select-Object -First 1 -ExpandProperty Path | Tee-Object -Variable "copied" | Set-Clipboard; $copied
 }
 
 function svnurl {
-    svn info | sls "^URL:\s(.+)$" | ForEach-Object {$_.Matches[0].Groups[1].Value } | Tee-Object -Variable "copied" | Set-Clipboard;
-    $copied
+    svn info | sls "^URL:\s(.+)$" | ForEach-Object {$_.Matches[0].Groups[1].Value } | Tee-Object -Variable "copied" | Set-Clipboard; $copied
 }
 
 function findgame {

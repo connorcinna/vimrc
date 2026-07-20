@@ -321,40 +321,48 @@ local function resolve()
             end
         end
      end
+     if next(conflicts) ~= nil then
+         conflict_filenames = ""
+         for _, conflict in ipairs(conflicts) do
+             conflict_filenames = conflict_filenames .. conflict.conflict .. " "
+         end
+         print(conflict_filenames)
+         vim.notify("Currently resolving the following files: " .. conflict_filenames .. " When you are done resolving, press d.")
+     end
 
-  for _, conflict in ipairs(conflicts) do
-      if #conflict.files == 3 then
-          local mine
-          local others = {}
+     for _, conflict in ipairs(conflicts) do
+         if #conflict.files == 3 then
+             local mine
+             local others = {}
 
-          for _, path in ipairs(conflict.files) do
-              if path:match("%.mine$") then
-                  mine = path
-              else
-                  table.insert(others, path)
-              end
-          end
-          if mine and #others == 2 then
-              --new tab 1st revision, hsplit with `mine`, move up, vsplit with 2nd revision
-              vim.cmd("tabnew " .. vim.fn.fnameescape(others[1]))
-              vim.cmd("split " .. vim.fn.fnameescape(mine))
-              vim.cmd("wincmd J")
-              vim.cmd("wincmd k")
-              vim.cmd("vertical diffsplit " .. vim.fn.fnameescape(others[2]))
-              vim.cmd("wincmd L")
-              vim.cmd("wincmd h")
-              vim.cmd("wincmd j")
-              vim.cmd("wincmd J")
+             for _, path in ipairs(conflict.files) do
+                 if path:match("%.mine$") then
+                     mine = path
+                 else
+                     table.insert(others, path)
+                 end
+             end
+             if mine and #others == 2 then
+                 --new tab 1st revision, hsplit with `mine`, move up, vsplit with 2nd revision
+                 vim.cmd("tabnew " .. vim.fn.fnameescape(others[1]))
+                 vim.cmd("split " .. vim.fn.fnameescape(mine))
+                 vim.cmd("wincmd J")
+                 vim.cmd("wincmd k")
+                 vim.cmd("vertical diffsplit " .. vim.fn.fnameescape(others[2]))
+                 vim.cmd("wincmd L")
+                 vim.cmd("wincmd h")
+                 vim.cmd("wincmd j")
+                 vim.cmd("wincmd J")
 
-              -- Enable diff mode in all windows
-              vim.cmd("diffthis")
-              vim.cmd("wincmd h")
-              vim.cmd("diffthis")
-              vim.cmd("wincmd j")
-              vim.cmd("diffthis")
-          end
-      end
-  end
+                 -- Enable diff mode in all windows
+                 vim.cmd("diffthis")
+                 vim.cmd("wincmd h")
+                 vim.cmd("diffthis")
+                 vim.cmd("wincmd j")
+                 vim.cmd("diffthis")
+             end
+         end
+     end
 end
 
 local function blame()

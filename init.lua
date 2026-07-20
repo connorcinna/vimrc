@@ -25,11 +25,12 @@ vim.cmd [[set nohls]]
 vim.cmd [[set noea]]
 vim.cmd('filetype plugin indent on')
 vim.cmd [[hi clear MatchParen]]
-vim.cmd [[let g:airline_theme='minimalist']]
+vim.cmd [[let g:airline_theme='gruvbox_material']]
+vim.o.background = "dark"
+vim.cmd [[let g:gruvbox_material_background ='hard']]
 vim.opt.autoindent = true
 vim.o.clipboard = "unnamedplus"
 vim.opt.termguicolors = true
-vim.o.background = "dark"
 
 vim.cmd [[set shiftwidth=4]]
 vim.cmd [[set tabstop=4 ]]
@@ -105,7 +106,7 @@ require("lazy").setup({
 
 -- config that has to happen after packages
 
-vim.cmd [[colorscheme lackluster]]
+vim.cmd [[colorscheme gruvbox-material]]
 local bufferline = require("bufferline")
 bufferline.setup {
     options = {
