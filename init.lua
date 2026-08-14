@@ -38,7 +38,6 @@ vim.cmd [[set expandtab ]]
 
 -- packages
 require("lazy").setup({
-  "neovim/nvim-lspconfig",
   'nvim-lua/plenary.nvim',
   'nvim-telescope/telescope.nvim',
    {
@@ -57,8 +56,9 @@ require("lazy").setup({
       config = true
   },
   {
-	  "mason-org/mason.nvim",
-	  opts = {}
+      "williamboman/mason-lspconfig.nvim",
+      dependencies = { "mason-org/mason.nvim", opts = {} },
+      "neovim/nvim-lspconfig",
   },
   "scrooloose/nerdtree",
   "tmhedberg/matchit",
@@ -86,22 +86,16 @@ require("lazy").setup({
 	  config = true,
   },
   {
-	  "williamboman/mason-lspconfig.nvim",
-	  opt =
-	  {
-		  ensure_installed =
-		  {
-			  'rust-analyzer',
-		  },
-	  },
-  },
-  {
     "khoido2003/roslyn-filewatch.nvim",
     config = function()
-      require("roslyn_filewatch").setup()
+        require("roslyn_filewatch").setup()
     end,
   },
-  {'akinsho/bufferline.nvim', version = "*", dependencies = 'nvim-tree/nvim-web-devicons'},
+  {
+      'akinsho/bufferline.nvim',
+      version = "*",
+      dependencies = 'nvim-tree/nvim-web-devicons'
+  },
 })
 
 -- config that has to happen after packages
@@ -136,122 +130,64 @@ vim.g.clipboard = {
   },
 }
 
--- helper functions
-
--- local function find_dotnet_project_dir()
---   local uv = vim.loop
---   local cwd = vim.fn.getcwd()
---
---   -- Helper to check if a directory contains a .sln or .csproj file
---   local function contains_dotnet_file(dir)
---     local full_path = cwd .. "/" .. dir
---     local handle = uv.fs_scandir(full_path)
---     if not handle then return false end
---
---     while true do
---       local name, type = uv.fs_scandir_next(handle)
---       if not name then break end
---       if type == "file" and (name:match("%.sln$") or name:match("%.csproj$")) then
---         return true
---       end
---     end
---     return false
---   end
---
---   -- Scan subdirectories of cwd
---   local handle = uv.fs_scandir(cwd)
---   if not handle then return nil end
---
---   while true do
---     local name, type = uv.fs_scandir_next(handle)
---     if not name then break end
---     if type == "directory" and contains_dotnet_file(name) then
---       return name
---     end
---   end
---
---   return nil -- nothing found
--- end
---
--- local function find_clangd_json()
---   local uv = vim.loop
---   local cwd = vim.fn.getcwd()
---
---   -- Helper to check if a directory contains a compile_commands.json file
---   local function contains_compile_commands_json(dir)
---     local full_path = cwd .. "/" .. dir
---     local handle = uv.fs_scandir(full_path)
---     if not handle then return false end
---
---     while true do
---       local name, type = uv.fs_scandir_next(handle)
---       if not name then break end
---       if type == "file" and (name:match("compile_commands.json")) then
---         return true
---       end
---     end
---     return false
---   end
---
---   -- Scan subdirectories of cwd
---   local handle = uv.fs_scandir(cwd)
---   if not handle then return nil end
---
---   while true do
---     local name, type = uv.fs_scandir_next(handle)
---     if not name then break end
---     if type == "directory" and contains_compile_commands_json(name) then
---       return name
---     end
---   end
---   return nil -- nothing found
--- end
-
 -- lsp
 vim.lsp.config('*', {
     root_markers = { '.git', '.svn' },
     capabilities = capabilities,
 })
-if vim.fn.has('win32') == 0 then
-    require("mason").setup()
+require("mason").setup()
+if work_config.enabled then
+    vim.lsp.config("roslyn", {
+        cmd = {
+          'dotnet',
+          'C:\\Users\\ccummings\\AppData\\Local\\nvim\\bin\\lib\\net9.0\\Microsoft.CodeAnalysis.LanguageServer.dll',
+          '--logLevel', -- this property is required by the server
+          'Information',
+          '--extensionLogDirectory', -- this property is required by the server
+          vim.fs.joinpath(vim.loop.os_tmpdir(), 'roslyn_ls/logs'),
+          '--stdio',
+        },
+        settings = {
+            ["csharp|inlay_hints"] = {
+                csharp_enable_inlay_hints_for_implicit_object_creation = true,
+                csharp_enable_inlay_hints_for_implicit_variable_types = true,
+            },
+            ["csharp|code_lens"] = {
+                dotnet_enable_references_code_lens = true,
+            },
+        },
+        filetypes = { 'cs', 'sln', 'csproj' },
+        root_dir = vim.fs.dirname(vim.fs.find(function(name, path)
+                       return name:match(".sln")
+                   end, { limit = math.huge, type = 'file' })[1]),
+    })
+    vim.lsp.enable('roslyn')
+    require('lspconfig').pyright.setup {
+        on_attach = on_attach,
+        cmd = {
+            'C:\\Users\\ccummings\\AppData\\Roaming\\npm\\pyright-langserver.cmd',
+            '--stdio',
+        },
+        filetypes = { 'py', 'python' },
+        root_dir = function(fname)
+            local util = require('lspconfig.util')
+            return util.root_pattern('.git', 'setup.py', 'setup.cfg', 'pyproject.toml', 'requirements.txt')(fname)
+                or vim.fn.getcwd() -- Fallback to current working directory if no root file is found
+        end,
+        single_file_support = true,
+    }
     require("mason-lspconfig").setup({
         ensure_installed = {
             "rust_analyzer",
-            "pyright",
+        },
+    })
+else
+    require("mason-lspconfig").setup({
+        ensure_installed = {
+            "rust_analyzer",
             "gopls"
         },
     })
-    vim.lsp.enable({"pyright"})
-    vim.lsp.enable({"gopls"})
-    vim.lsp.enable({"rust_analyzer"})
-else
-    if work_config.enabled then
-        vim.lsp.config("roslyn", {
-            cmd = {
-              'dotnet',
-              'C:\\Users\\ccummings\\AppData\\Local\\nvim\\bin\\lib\\net9.0\\Microsoft.CodeAnalysis.LanguageServer.dll',
-              '--logLevel', -- this property is required by the server
-              'Information',
-              '--extensionLogDirectory', -- this property is required by the server
-              vim.fs.joinpath(vim.loop.os_tmpdir(), 'roslyn_ls/logs'),
-              '--stdio',
-            },
-            settings = {
-                ["csharp|inlay_hints"] = {
-                    csharp_enable_inlay_hints_for_implicit_object_creation = true,
-                    csharp_enable_inlay_hints_for_implicit_variable_types = true,
-                },
-                ["csharp|code_lens"] = {
-                    dotnet_enable_references_code_lens = true,
-                },
-            },
-            filetypes = { 'cs', 'sln', 'csproj' },
-            root_dir = vim.fs.dirname(vim.fs.find(function(name, path)
-                           return name:match(".sln")
-                       end, { limit = math.huge, type = 'file' })[1]),
-        })
-        vim.lsp.enable('roslyn')
-    end
 end
 
 -- keybinds
@@ -282,6 +218,9 @@ end)
 vim.keymap.set('n', '<Leader>yn', function()
     vim.fn.setreg('+', vim.fn.expand('%:t:r'))
 end)
+-- tab close
+vim.keymap.set('n', '<Leader>tc', ':tabclose!<CR>', {noremap = true, silent = true, desc = "tab close"})
+
 
 -- snippets
 local ls = require("luasnip")
@@ -387,7 +326,7 @@ if vim.fn.has('win32') == 1 then
 	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
 	vim.cmd [[set ffs=dos]]
 	vim.cmd [[set shellquote= shellxquote=]]
-    vim.opt.bomb = true
+    -- vim.opt.bomb = true -- this setting is annoying and causes problems in some files
 	if work_config.enabled then
 		vim.opt.rtp:append(vim.fn.stdpath "config" .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
 		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
