@@ -135,7 +135,7 @@ vim.lsp.config('*', {
     capabilities = capabilities,
 })
 require("mason").setup()
-if work_config.enabled then
+if work_config.enabled and vim.fn.has('win32') == 1 then
     vim.lsp.config("roslyn", {
         cmd = {
           'dotnet',
@@ -161,7 +161,7 @@ if work_config.enabled then
                    end, { limit = math.huge, type = 'file' })[1]),
     })
     vim.lsp.enable('roslyn')
-    require('lspconfig').pyright.setup {
+    vim.lsp.config('pyright', {
         on_attach = on_attach,
         cmd = {
             'C:\\Users\\ccummings\\AppData\\Roaming\\npm\\pyright-langserver.cmd',
@@ -174,7 +174,7 @@ if work_config.enabled then
                 or vim.fn.getcwd() -- Fallback to current working directory if no root file is found
         end,
         single_file_support = true,
-    }
+    })
     require("mason-lspconfig").setup({
         ensure_installed = {
             "rust_analyzer",
@@ -184,7 +184,8 @@ else
     require("mason-lspconfig").setup({
         ensure_installed = {
             "rust_analyzer",
-            "gopls"
+            "gopls",
+            "pyright"
         },
     })
 end
