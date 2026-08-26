@@ -12,7 +12,7 @@ end
 -- my own imports
 local work_config = require('work_config')
 require('svn')
-
+local shell = require('shell')
 -- general options
 vim.opt.rtp:prepend(lazypath)
 vim.api.nvim_set_hl(0, 'LineNrAbove', { fg='#bcbcbc', bold=true })
@@ -218,8 +218,48 @@ end)
 vim.keymap.set('n', '<Leader>yn', function()
     vim.fn.setreg('+', vim.fn.expand('%:t:r'))
 end)
--- tab close
+-- close tab
 vim.keymap.set('n', '<Leader>tc', ':tabclose!<CR>', {noremap = true, silent = true, desc = "tab close"})
+-- new tab
+vim.keymap.set('n', '<Leader>tn', ':tabnew<CR>', {noremap = true, silent = true, desc = "tab new"})
+
+-- build work projects
+if work_config.enabled then
+    local build_output = nil
+    local remote_destination = nil
+    local function callback()
+        vim.schedule(function()
+            vim.notify('callback reached')
+            -- TODO automate scp-ing build_output to remote_destination
+            -- 1. get remote_destination from dir, should be the same player version
+            -- 2. figure out reading stdin from the created window to pass to the powershell script. i could probalby do something similar to the svn operations but in hindsight that shit is really stupid
+            -- shell.do_async_cmd({'powershell.exe', '-NoProfile', '-File', vim.fs.dirname(vim.env.MYVIMRC) .. "/powershell/scp_build.ps1"})
+        end)
+    end
+    vim.keymap.set('n', '<Leader>b', function()
+        local dir = vim.fn.getcwd()
+        if string.find(dir, "C2") ~= nil then
+            vim.schedule(function()
+                vim.notify('Building C2')
+                build_output = '../CorePresentation/CorePresentationLinuxDebug/'
+            end)
+            shell.do_async_cmd({'powershell.exe', '-NoProfile', '-Command', 'pushd ..; ./CIIBuildCoreLinuxDevelopment64Bit.bat; popd'}, callback)
+        elseif string.find(dir, "C3") ~= nil then
+            vim.schedule(function()
+                vim.notify('Building C3')
+                build_output = '../CorePresentation/CorePresentationLinuxDebug/'
+            end)
+            shell.do_async_cmd({'powershell.exe', '-NoProfile', '-Command', 'pushd ..; ./BuildCoreLinuxDevelopment64Bit.bat; popd'}, callback)
+        elseif string.find(dir, "EPC") ~= nil then
+            vim.schedule(function()
+                vim.notify('Building EPC')
+                build_output = './GameServer_Kit/Setup/Intermediate'
+            end)
+            shell.do_async_cmd({'dotnet', 'build', '.\\GameServer_Kit\\Setup\\ePC_Kit.sln'}, callback)
+        end
+    end,
+    {noremap = true, silent = true, desc = "build work projects"})
+end
 
 
 -- snippets
@@ -335,7 +375,7 @@ if vim.fn.has('win32') == 1 then
 		--DIY powershell profile
 		 vim.api.nvim_create_autocmd('TermOpen', {
 		      callback = function()
-                  local txt = vim.fs.dirname(vim.env.MYVIMRC) .. "/powershell_profile.ps1"
+                  local txt = vim.fs.dirname(vim.env.MYVIMRC) .. "/powershell/powershell_profile.ps1"
                   local file, err = io.open(txt, "rb")
                   if file then
                       local ps_profile = file:read("*a")

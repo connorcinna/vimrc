@@ -1,6 +1,7 @@
 local svn = {}
 
 local shell = require('shell')
+local util = require('util')
 
 local STATUS_COL_LENGTH = 7
 
@@ -19,15 +20,6 @@ local window_opts = {
     title_pos = "center"
 }
 
-local function string_to_table(s)
-    local t = {}
-    s = s:gsub("\r\n", "\n")
-    for line in s:gmatch("(.-)\n") do
-        table.insert(t, line)
-    end
-    return t
-end
-
 local function find_out_of_date(t)
     ood = {}
     for i, line in ipairs(t) do
@@ -37,22 +29,7 @@ local function find_out_of_date(t)
     end
     return ood
 end
-local function filter_from_table(t, remove)
-    new_t = {}
-    for i, line in ipairs(t) do
-        line = line:gsub(remove, "")
-        table.insert(new_t, line)
-    end
-    return new_t
-end
 
-local function split(str, sep)
-    local t = {}
-    for s in string.gmatch(str, "([^" .. sep .. "]+)" ) do
-        table.insert(t, s)
-    end
-    return t
-end
 
 -- update with '--accept postpone' and resolve in resolve()
 local function _up(buf_id, win_id, commit_hook)
@@ -70,12 +47,12 @@ local function _up(buf_id, win_id, commit_hook)
         vim.keymap.set('n', 'q', function()
             vim.api.nvim_win_close(win, {force = true})
             vim.api.nvim_buf_delete(buf, {force = true})
-        end, {buffer = true})
+        end, {buffer = buf})
     else
         win = win_id
     end
     local output = shell.do_system_cmd('svn up --accept postpone')
-    local output_table = string_to_table(output)
+    local output_table = util.string_to_table(output)
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, output_table)
     if commit_hook then
         --TODO check if we need to resolve first
@@ -108,12 +85,12 @@ local function _check_updates(buf_id, win_id, commit_hook)
         vim.keymap.set('n', 'q', function()
             vim.api.nvim_win_close(win, {force = true})
             vim.api.nvim_buf_delete(buf, {force = true})
-        end, {buffer = true})
+        end, {buffer = buf})
     else
         win = win_id
     end
     local check_update = shell.do_system_cmd('svn status --show-updates')
-    local update_table = string_to_table(check_update)
+    local update_table = util.string_to_table(check_update)
     update_table = find_out_of_date(update_table)
     if not commit_hook then
         if #update_table > 0 then
@@ -121,7 +98,7 @@ local function _check_updates(buf_id, win_id, commit_hook)
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, update_table)
             vim.keymap.set('n', 'u', function()
                 _up(buf, win)
-            end, {buffer = true})
+            end, {buffer = buf})
         else
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, {"Local copy up to date - press 'q' to exit."})
         end
@@ -131,7 +108,7 @@ local function _check_updates(buf_id, win_id, commit_hook)
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, update_table)
             vim.keymap.set('n', 'u', function()
                 _up(buf, win, commit_hook)
-            end, {buffer = true})
+            end, {buffer = buf})
         else
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, {"Enter commit message:"})
             vim.api.nvim_buf_set_lines(buf, -1, -1, false, {""})
@@ -151,7 +128,7 @@ local function _status()
         on_stdout = function(_, data)
             vim.schedule(function()
                 if data then
-                    data = filter_from_table(data, "\r")
+                    data = util.filter_from_table(data, "\r")
                     vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
                 end
             end)
@@ -159,7 +136,7 @@ local function _status()
         on_stderr = function(_, data)
             vim.schedule(function()
                 if data then
-                    data = filter_from_table(data, "\r")
+                    data = util.filter_from_table(data, "\r")
                     vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
                 end
             end)
@@ -170,7 +147,7 @@ local function _status()
     vim.keymap.set('n', 'q', function()
         vim.api.nvim_win_close(win, {force = true})
         vim.api.nvim_buf_delete(buf, {force = true})
-    end, {buffer = true})
+    end, {buffer = buf})
 end
 
 local function _info()
@@ -183,7 +160,7 @@ local function _info()
         on_stdout = function(_, data)
             vim.schedule(function()
                 if data then
-                    data = filter_from_table(data, "\r")
+                    data = util.filter_from_table(data, "\r")
                     vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
                 end
             end)
@@ -191,7 +168,7 @@ local function _info()
         on_stderr = function(_, data)
             vim.schedule(function()
                 if data then
-                    data = filter_from_table(data, "\r")
+                    data = util.filter_from_table(data, "\r")
                     vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
                 end
             end)
@@ -202,7 +179,7 @@ local function _info()
     vim.keymap.set('n', 'q', function()
         vim.api.nvim_win_close(win, {force = true})
         vim.api.nvim_buf_delete(buf, {force = true})
-    end, {buffer = true})
+    end, {buffer = buf})
 end
 
 local function check_updates(opts)
@@ -219,16 +196,16 @@ local function commit(opts)
         vim.api.nvim_win_close(win, {force = true})
         local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
         vim.api.nvim_feedkeys(esc, 'i', false)
-    end, {buffer = true})
+    end, {buffer = buf})
     vim.keymap.set('i', '<CR>', function()
         local buf_text = vim.api.nvim_buf_get_lines(buf, 1, -1, false)
         local output = shell.do_system_cmd('svn commit -m "' .. buf_text[1] .. '"')
-        local output_table = string_to_table(output)
+        local output_table = util.string_to_table(output)
         local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
         vim.api.nvim_feedkeys(esc, 'i', false)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, output_table)
         vim.api.nvim_buf_set_lines(buf, -1, -1, false, {"Press 'q' to exit."})
-    end, {buffer = true})
+    end, {buffer = buf})
     _check_updates(buf, win, true)
 end
 
@@ -242,7 +219,7 @@ local function log()
         on_stdout = function(_, data)
             vim.schedule(function()
                 if data then
-                    data = filter_from_table(data, "\r")
+                    data = util.filter_from_table(data, "\r")
                     vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
                 end
             end)
@@ -250,7 +227,7 @@ local function log()
         on_stderr = function(_, data)
             vim.schedule(function()
                 if data then
-                    data = filter_from_table(data, "\r")
+                    data = util.filter_from_table(data, "\r")
                     vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
                 end
             end)
@@ -261,12 +238,12 @@ local function log()
     vim.keymap.set('n', 'q', function()
         vim.api.nvim_win_close(win, {force = true})
         vim.api.nvim_buf_delete(buf, {force = true})
-    end, {buffer = true})
+    end, {buffer = buf})
 end
 
 local function diff()
     local modified = shell.do_system_cmd('svn status --quiet')
-    local modified_table = string_to_table(modified)
+    local modified_table = util.string_to_table(modified)
     for index, line in ipairs(modified_table) do
         local line = string.sub(line, STATUS_COL_LENGTH)
         local buf = vim.api.nvim_create_buf(false, true)
@@ -275,7 +252,7 @@ local function diff()
         if (string.find(pristine_copy, "E200009")) then
             pristine_copy = "New File - Nothing to diff against"
         end
-        local pristine_copy_table = string_to_table(pristine_copy)
+        local pristine_copy_table = util.string_to_table(pristine_copy)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, pristine_copy_table)
         local filetype = vim.api.nvim_get_option_value('filetype', {scope = 'local'})
         --set the filetype to be the same as the left view
@@ -284,7 +261,8 @@ local function diff()
         --from this point on current window and buffer is a new tab
         local right_win = vim.api.nvim_get_current_win()
         local left_win = vim.api.nvim_open_win(buf, 0, {split = 'left', win = 0})
-        --set all related diff options for each tab
+        --set diff options
+        -- right window
         vim.api.nvim_set_option_value('diff', true, {win = right_win})
         vim.api.nvim_set_option_value('scrollbind', true, {win = right_win})
         vim.api.nvim_set_option_value('cursorbind', true, {win = right_win})
@@ -292,6 +270,7 @@ local function diff()
         vim.api.nvim_set_option_value('foldmethod', 'diff', {win = right_win})
         vim.api.nvim_set_option_value('foldcolumn', '2', {win = right_win})
 
+        -- left window
         vim.api.nvim_set_option_value('diff', true, {win = left_win})
         vim.api.nvim_set_option_value('scrollbind', true, {win = left_win})
         vim.api.nvim_set_option_value('cursorbind', true, {win = left_win})
