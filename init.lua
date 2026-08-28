@@ -101,12 +101,12 @@ require("lazy").setup({
 
 vim.cmd [[colorscheme lackluster]]
 local bufferline = require("bufferline")
-bufferline.setup {
+bufferline.setup({
     options = {
         mode = "tabs",
-        style_preset = bufferline.style_preset.minimal,
+        style_preset = bufferline.style_preset.default,
     },
-}
+})
 
 -- copy and paste between ssh windows
 local function paste()
