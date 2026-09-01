@@ -13,6 +13,7 @@ end
 local work_config = require("work_config")
 require("svn")
 local shell = require("shell")
+local util = require("util")
 -- general options
 vim.opt.rtp:prepend(lazypath)
 vim.api.nvim_set_hl(0, "LineNrAbove", { fg = "#bcbcbc", bold = true })
@@ -165,24 +166,29 @@ if work_config.enabled and vim.fn.has("win32") == 1 then
 		end, { limit = math.huge, type = "file" })[1]),
 	})
 	vim.lsp.enable("roslyn")
-	vim.lsp.config("pyright", {
-		on_attach = on_attach,
-		cmd = {
-			"C:\\Users\\ccummings\\AppData\\Roaming\\npm\\pyright-langserver.cmd",
-			"--stdio",
-		},
-		filetypes = { "py", "python" },
-		root_dir = function(fname)
-			local util = require("lspconfig.util")
-			return util.root_pattern(".git", "setup.py", "setup.cfg", "pyproject.toml", "requirements.txt")(fname)
-				or vim.fn.getcwd() -- Fallback to current working directory if no root file is found
-		end,
-		single_file_support = true,
-	})
 	require("mason-lspconfig").setup({
 		ensure_installed = {
 			"rust_analyzer",
+			"lua_ls",
+			"pyright",
 		},
+	})
+	require("mason-lspconfig").setup_handlers({
+		function(server_name) -- default handler (optional)
+			require("lspconfig")[server_name].setup({})
+		end,
+		["lua_ls"] = function()
+			local lspconfig = require("lspconfig")
+			lspconfig.lua_ls.setup({
+				settings = {
+					Lua = {
+						diagnostics = {
+							globals = { "vim" },
+						},
+					},
+				},
+			})
+		end,
 	})
 else
 	require("mason-lspconfig").setup({
@@ -190,19 +196,39 @@ else
 			"rust_analyzer",
 			"gopls",
 			"pyright",
+			"lua_ls",
 		},
+	})
+	require("mason-lspconfig").setup_handlers({
+		function(server_name)
+			require("lspconfig")[server_name].setup({})
+		end,
 	})
 end
 
 -- formatter
 
+local my_python_cmd = "python"
+local my_python_args = { "-m", "black", "-q", "-" }
+
+if work_config.enabled and vim.fn.has("win32") == 1 then
+	my_python_cmd = "cmd.exe"
+	my_python_args = { "/c", "python", "-m", "black", "-q", "-" }
+end
 require("conform").setup({
 	formatters_by_ft = {
 		lua = { "stylua" },
-		-- C#? python?
+		python = { "my_python" },
+	},
+	formatters = {
+		my_python = {
+			command = my_python_cmd,
+			args = my_python_args,
+			stdin = true,
+		},
 	},
 	format_on_save = {
-		timeout_ms = 500,
+		timeout_ms = 2000,
 		lsp_format = "fallback",
 	},
 })
@@ -284,32 +310,40 @@ if work_config.enabled then
 		end)
 	end
 	vim.keymap.set("n", "<Leader>b", function()
-		local dir_split = util.tokenize(vim.fn.getcwd(), "/")
-		for part in dir_split do
-			util.print("part: " .. part)
-			--     if string.find(part, "C2") ~= nil then
-			--         vim.schedule(function()
-			--             vim.notify('Building C2')
-			--             build_output = '../CorePresentation/CorePresentationLinuxDebug/'
-			--             remote_destination = '/home/cjdev/projects/3dplayer/' .. part .. '/CoreBuild/'
-			--         end)
-			--     shell.do_async_cmd({'powershell.exe', '-NoProfile', '-Command', 'pushd ..; ./CIIBuildCoreLinuxDevelopment64Bit.bat; popd'}, callback)
-			--     elseif string.find(part, "C3") ~= nil then
-			--         vim.schedule(function()
-			--             vim.notify('Building C3')
-			--             build_output = '../CorePresentation/CorePresentationLinuxDebug/'
-			--             remote_destination = '/home/cjdev/projects/3dplayer/' .. part .. '/CoreBuild/'
-			--         end)
-			--         shell.do_async_cmd({'powershell.exe', '-NoProfile', '-Command', 'pushd ..; ./BuildCoreLinuxDevelopment64Bit.bat; popd'}, callback)
-			--     elseif string.find(part, "EPC") ~= nil then
-			--         vim.schedule(function()
-			--             vim.notify('Building EPC')
-			--             build_output = './GameServer_Kit/Setup/Intermediate'
-			--             remote_destination = '/home/player/bin/ePC/'
-			--         end)
-			--         shell.do_async_cmd({'dotnet', 'build', '.\\GameServer_Kit\\Setup\\ePC_Kit.sln'}, callback)
-			--     end
-			-- end
+		local dir_split = util.tokenize(vim.fn.getcwd(), "\\")
+		for key, value in pairs(dir_split) do
+			if string.find(value, "C2") ~= nil then
+				vim.schedule(function()
+					vim.notify("Building C2")
+					build_output = "../CorePresentation/CorePresentationLinuxDebug/"
+					remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
+				end)
+				shell.do_async_cmd({
+					"powershell.exe",
+					"-NoProfile",
+					"-Command",
+					"pushd ..; ./CIIBuildCoreLinuxDevelopment64Bit.bat; popd",
+				}, callback)
+			elseif string.find(value, "C3") ~= nil then
+				vim.schedule(function()
+					vim.notify("Building C3")
+					build_output = "../CorePresentation/CorePresentationLinuxDebug/"
+					remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
+				end)
+				shell.do_async_cmd({
+					"powershell.exe",
+					"-NoProfile",
+					"-Command",
+					"pushd ..; ./BuildCoreLinuxDevelopment64Bit.bat; popd",
+				}, callback)
+			elseif string.find(value, "EPC") ~= nil then
+				vim.schedule(function()
+					vim.notify("Building EPC")
+					build_output = "./GameServer_Kit/Setup/Intermediate"
+					remote_destination = "/home/player/bin/ePC/"
+				end)
+				shell.do_async_cmd({ "dotnet", "build", ".\\GameServer_Kit\\Setup\\ePC_Kit.sln" }, callback)
+			end
 		end
 	end, { noremap = true, silent = true, desc = "build work projects" })
 end
@@ -399,7 +433,6 @@ cmp.setup({
 		["<C-f>"] = cmp.mapping.scroll_docs(4),
 		["<C-j>"] = cmp.mapping.select_next_item(),
 		["<C-k>"] = cmp.mapping.select_prev_item(),
-		["<C-f>"] = cmp.mapping.scroll_docs(4),
 		["<C-Space>"] = cmp.mapping.complete(),
 		["<C-e>"] = cmp.mapping.abort(),
 		["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
@@ -459,43 +492,3 @@ if vim.fn.has("win32") == 1 then
 		})
 	end
 end
-
--- autosave sessions
---
--- Directory where session files will be stored
-local session_dir = vim.fn.stdpath("data") .. "/sessions/"
-if vim.fn.isdirectory(session_dir) == 0 then
-	vim.fn.mkdir(session_dir, "p")
-end
-
--- Derive a session file name from the current working directory,
--- so each project gets its own session file.
-local function session_file()
-	local cwd = vim.fn.getcwd()
-	local name = cwd:gsub("[/\\:]", "%%")
-	return session_dir .. name .. ".vim"
-end
-
--- Autosave session on write
-local session_group = vim.api.nvim_create_augroup("AutoSession", { clear = true })
-
-vim.api.nvim_create_autocmd("BufWritePost", {
-	group = session_group,
-	pattern = "*",
-	callback = function()
-		-- avoid saving sessions for special/scratch buffers
-		if vim.bo.buftype == "" then
-			vim.cmd("mksession! " .. vim.fn.fnameescape(session_file()))
-		end
-	end,
-})
-
--- Keybind to restore the session for the current directory
-vim.keymap.set("n", "<leader>qs", function()
-	local file = session_file()
-	if vim.fn.filereadable(file) == 1 then
-		vim.cmd("source " .. vim.fn.fnameescape(file))
-	else
-		vim.notify("No session found for this directory", vim.log.levels.WARN)
-	end
-end, { desc = "Restore session for cwd" })
