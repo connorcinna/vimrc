@@ -27,4 +27,22 @@ function util.execute_powershell_file(ps_file)
     end
 end
 
+function util.tokenize(inputstr, sep)
+    sep = sep or "%s" -- Defaults to whitespace if no separator is given
+    local t = {}
+
+    -- Pattern matches any sequence of characters that are NOT the separator
+    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+        table.insert(t, str)
+    end
+
+    return t
+end
+
+function util.print(str)
+    vim.schedule(function()
+        vim.notify(str)
+    end)
+end
+
 return util
