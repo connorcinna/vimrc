@@ -36,7 +36,7 @@ function shell.do_async_cmd(args, callback)
 		anchor = "NW",
 		style = "minimal",
 		border = { "╔", "═", "╗", "║", "╝", "═", "╚", "║" },
-		title = string.format(table.concat(args, " ")),
+		title = args,
 		title_pos = "center",
 	}
 	local buf = vim.api.nvim_create_buf(false, true)
@@ -44,13 +44,13 @@ function shell.do_async_cmd(args, callback)
 	local win = vim.api.nvim_open_win(buf, false, window_opts)
 	local function on_done(obj)
 		if obj.code ~= 0 then
-			util.print("Command failed: " .. table.concat(args, " "), vim.log.levels.ERROR)
+			util.print("Command failed: " .. args, vim.log.levels.ERROR)
 			vim.defer_fn(function()
 				vim.api.nvim_win_close(win, true)
 				vim.api.nvim_buf_delete(buf, { force = true })
 			end, 3000)
 		else
-			util.print("Command completed: " .. table.concat(args, " "))
+			util.print("Command completed: " .. args)
 			vim.defer_fn(function()
 				vim.api.nvim_win_close(win, true)
 				vim.api.nvim_buf_delete(buf, { force = true })
@@ -74,7 +74,9 @@ function shell.do_async_cmd(args, callback)
 			end)
 		end
 	end
-	vim.system(args, { text = true, stdout = on_stdout_stderr, stderr = on_stdout_stderr }, on_done)
+	local final_args = { "powershell.exe", "-NoProfile", "-Command" }
+	table.insert(final_args, args)
+	vim.system(final_args, { text = true, stdout = on_stdout_stderr, stderr = on_stdout_stderr }, on_done)
 	vim.keymap.set("n", "q", function()
 		vim.api.nvim_win_close(win, true)
 		vim.api.nvim_buf_delete(buf, { force = true })
