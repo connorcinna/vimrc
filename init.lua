@@ -298,15 +298,36 @@ vim.keymap.set("n", "<Leader>tn", ":tabnew<CR>", { noremap = true, silent = true
 
 -- build work projects
 if work_config.enabled then
-	local build_output = nil
-	local remote_destination = nil
+	local build_output
+	local remote_destination
+	local function is_presentation_modified()
+		local status = shell.do_system_cmd("svn status ../CorePresentation")
+		for line in status:gmatch("[^\r\n]+") do
+			if line:match("^M%s+") then
+				return true
+			end
+		end
+		return false
+	end
 	local function callback()
 		vim.schedule(function()
-			vim.notify("callback reached")
-			-- TODO automate scp-ing build_output to remote_destination
-			-- 1. get remote_destination from dir, should be the same player version
-			-- 2. figure out reading stdin from the created window to pass to the powershell script. i could probalby do something similar to the svn operations but in hindsight that shit is really stupid
-			-- shell.do_async_cmd({'powershell.exe', '-NoProfile', '-File', vim.fs.dirname(vim.env.MYVIMRC) .. "/powershell/scp_build.ps1"})
+			vim.ui.input({ prompt = "Build Succeeded! SCP to devkit? (y/n)" }, function(confirm)
+				if confirm == "y" then
+					vim.ui.input({ prompt = "Enter IP address: " }, function(ip)
+						if string.find(remote_destination, "cjdev") ~= nil then
+							remote_destination = "cjdev@" .. ip .. ":" .. remote_destination
+						else
+							remote_destination = "root@" .. ip .. ":" .. remote_destination
+						end
+						shell.do_async_cmd({
+							"powershell.exe",
+							"-NoProfile",
+							"-Command",
+							"scp -vr " .. build_output .. " " .. remote_destination .. " > scpout.txt",
+						})
+					end)
+				end
+			end)
 		end)
 	end
 	vim.keymap.set("n", "<Leader>b", function()
@@ -314,35 +335,61 @@ if work_config.enabled then
 		for key, value in pairs(dir_split) do
 			if string.find(value, "C2") ~= nil then
 				vim.schedule(function()
-					vim.notify("Building C2")
-					build_output = "../CorePresentation/CorePresentationLinuxDebug/"
-					remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
+					local script_name = ""
+					if is_presentation_modified() then
+						vim.notify("Building C2 CorePresentation + CoreAssemblies")
+						build_output = "../CorePresentation/CorePresentationLinuxDebug/*"
+						remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
+						script_name = "CIIBuildCoreLinuxDevelopment64Bit.bat"
+					else
+						vim.notify("Building C2 CoreAssemblies only")
+						build_output = "../CoreAssemblies/BuildOutputCoreDevelopmentCII/*"
+						remote_destination = "/home/cjdev/projects/3dplayer/"
+							.. value
+							.. "/CoreBuild/StandardBuild_Data/Managed/"
+						script_name = "CIIBuildDevelopment64Bit.bat"
+					end
+					shell.do_async_cmd({
+						"powershell.exe",
+						"-NoProfile",
+						"-Command",
+						"pushd ..; ./" .. script_name .. "; popd",
+					}, callback)
 				end)
-				shell.do_async_cmd({
-					"powershell.exe",
-					"-NoProfile",
-					"-Command",
-					"pushd ..; ./CIIBuildCoreLinuxDevelopment64Bit.bat; popd",
-				}, callback)
+				break
 			elseif string.find(value, "C3") ~= nil then
 				vim.schedule(function()
 					vim.notify("Building C3")
-					build_output = "../CorePresentation/CorePresentationLinuxDebug/"
-					remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
+					local script_name = ""
+					if is_presentation_modified() then
+						build_output = "../CorePresentation/CorePresentationLinuxDebug/*"
+						remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
+						script_name = "BuildCoreLinuxDevelopment64Bit.bat"
+					else
+						build_output = "../CoreAssemblies/BuildOutputCoreDevelopment/*"
+						remote_destination = "/home/cjdev/projects/3dplayer/"
+							.. value
+							.. "/CoreBuild/StandardBuild_Data/Managed/"
+						script_name = "BuildDevelopment64Bit.bat"
+					end
+					shell.do_async_cmd({
+						"powershell.exe",
+						"-NoProfile",
+						"-Command",
+						"pushd ..; ./" .. script_name .. "; popd",
+					}, callback)
 				end)
-				shell.do_async_cmd({
-					"powershell.exe",
-					"-NoProfile",
-					"-Command",
-					"pushd ..; ./BuildCoreLinuxDevelopment64Bit.bat; popd",
-				}, callback)
+				break
 			elseif string.find(value, "EPC") ~= nil then
 				vim.schedule(function()
 					vim.notify("Building EPC")
-					build_output = "./GameServer_Kit/Setup/Intermediate"
+					build_output = "./GameServer_Kit/Setup/Intermediate/*"
 					remote_destination = "/home/player/bin/ePC/"
 				end)
 				shell.do_async_cmd({ "dotnet", "build", ".\\GameServer_Kit\\Setup\\ePC_Kit.sln" }, callback)
+				break
+			else
+				util.print("Could not identify project directory: " .. vim.fn.getcwd())
 			end
 		end
 	end, { noremap = true, silent = true, desc = "build work projects" })
