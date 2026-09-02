@@ -4,7 +4,7 @@ local work_config = require("work_config")
 
 -- File find keybinds
 local builtin = require("telescope.builtin")
-vim.keymap.set("n", "<Leader>d", ":NERDTreeToggle<CR>", { noremap = true, silent = true, desc = "open nerdtree" })
+vim.keymap.set("n", "<Leader>d", ":NvimTreeToggle<CR>", { noremap = true, silent = true, desc = "toggle tree" })
 vim.keymap.set("n", "<Leader>f", builtin.find_files, { noremap = true, silent = true, desc = "telescope find files" })
 vim.keymap.set("n", "<Leader>fg", builtin.live_grep, { noremap = true, silent = true, desc = "telescope live grep" })
 vim.keymap.set(
@@ -65,6 +65,12 @@ end)
 vim.keymap.set("n", "<Leader>tc", ":tabclose!<CR>", { noremap = true, silent = true, desc = "tab close" })
 -- new tab
 vim.keymap.set("n", "<Leader>tn", ":tabnew<CR>", { noremap = true, silent = true, desc = "tab new" })
+-- open new tab with init.lua and change directory to it
+vim.keymap.set("n", "<Leader>oc", function()
+    vim.cmd("tabnew")
+    vim.cmd("tcd " .. vim.fs.dirname(vim.env.MYVIMRC))
+    vim.cmd("edit " .. vim.env.MYVIMRC)
+end, { noremap = true, silent = true, desc = "open configuration dir" })
 
 -- build work projects
 if work_config.enabled then

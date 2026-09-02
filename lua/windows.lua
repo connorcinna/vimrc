@@ -22,7 +22,7 @@ if vim.fn.has("win32") == 1 then
 					vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
 					file:close()
 				end
-			end, --autocmd callback function
+			end,
 		})
 	end
 end

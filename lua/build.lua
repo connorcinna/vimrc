@@ -35,8 +35,6 @@ local function callback()
 	end)
 end
 
--- build the work project detected in the current working directory (C2, C3, or EPC)
--- and offer to scp the output to a devkit once the build succeeds
 function build.run()
 	local dir_split = util.tokenize(vim.fn.getcwd(), "\\")
 	for key, value in pairs(dir_split) do
@@ -77,6 +75,24 @@ function build.run()
 				shell.do_async_cmd("pushd ..; ./ " .. script_name .. "; popd", callback)
 			end)
 			break
+		elseif string.find(value, "ETabs") ~= nil then
+			vim.schedule(function()
+				vim.notify("Building ETabs")
+				local script_name = ""
+				if is_presentation_modified() then
+					build_output = "../CorePresentation/CorePresentationLinuxDebug/*"
+					remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
+					script_name = "ETabsBuildCoreLinuxDevelopment64Bit.bat"
+				else
+					build_output = "../CoreAssemblies/BuildOutputCoreDevelopment/*"
+					remote_destination = "/home/cjdev/projects/3dplayer/"
+						.. value
+						.. "/CoreBuild/StandardBuild_Data/Managed/"
+					script_name = "ETabsBuildDevelopment64Bit.bat"
+				end
+				shell.do_async_cmd("pushd ..; ./ " .. script_name .. "; popd", callback)
+			end)
+			break
 		elseif string.find(value, "EPC") ~= nil then
 			vim.schedule(function()
 				vim.notify("Building EPC")
@@ -85,9 +101,8 @@ function build.run()
 			end)
 			shell.do_async_cmd("dotnet build .\\GameServer_Kit\\Setup\\ePC_Kit.sln", callback)
 			break
-		else
-			util.print("Could not identify project directory: " .. vim.fn.getcwd())
 		end
+		util.print("Could not identify project directory: " .. vim.fn.getcwd())
 	end
 end
 

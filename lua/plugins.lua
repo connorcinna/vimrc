@@ -36,8 +36,10 @@ require("lazy").setup({
 		dependencies = { "mason-org/mason.nvim", opts = {} },
 		"neovim/nvim-lspconfig",
 	},
-	"scrooloose/nerdtree",
 	"tmhedberg/matchit",
+	{
+		"nvim-tree/nvim-tree.lua",
+	},
 	"mileszs/ack.vim",
 	"sjl/gundo.vim",
 	"tpope/vim-dispatch",
@@ -76,3 +78,12 @@ require("lazy").setup({
 		opts = {},
 	},
 })
+
+-- nvim-tree config
+local config = {
+	sync_root_with_cwd = true,
+	filesystem_watchers = {
+		enable = false,
+	},
+}
+require("nvim-tree").setup(config)
