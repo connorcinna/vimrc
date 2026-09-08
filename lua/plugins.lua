@@ -85,5 +85,20 @@ local config = {
 	filesystem_watchers = {
 		enable = false,
 	},
+	auto_reload_on_write = false,
+	reload_on_bufenter = true,
+	hijack_directories = {
+		enable = false,
+		auto_open = false,
+	},
+	tab = {
+		sync = {
+			open = true,
+			close = true,
+		},
+	},
+	git = {
+		enable = false,
+	},
 }
 require("nvim-tree").setup(config)

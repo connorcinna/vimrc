@@ -52,10 +52,21 @@ vim.keymap.set("n", "<Leader>ln", ":lua vim.lsp.buf.rename()<CR>", { noremap = t
 vim.keymap.set("n", "<Leader>yp", function()
 	vim.fn.setreg("+", vim.fn.expand("%:p:."))
 end)
+
 -- copy full path current directory to external clipboard
+local function getcwd()
+	if vim.fn.has("win32") then
+		return vim.system({ "powershell.exe", "-NoProfile", "-Command", "pwd | Select-Object -ExpandProperty Path" })
+			:wait().stdout
+	else
+		return vim.fn.expand("%:h")
+	end
+end
 vim.keymap.set("n", "<Leader>yd", function()
-	vim.fn.setreg("+", vim.fn.expand("%:h"))
+	local pwd = getcwd()
+	vim.fn.setreg("+", pwd)
 end)
+
 -- copy current filename open without extension
 vim.keymap.set("n", "<Leader>yn", function()
 	vim.fn.setreg("+", vim.fn.expand("%:t:r"))
@@ -67,9 +78,9 @@ vim.keymap.set("n", "<Leader>tc", ":tabclose!<CR>", { noremap = true, silent = t
 vim.keymap.set("n", "<Leader>tn", ":tabnew<CR>", { noremap = true, silent = true, desc = "tab new" })
 -- open new tab with init.lua and change directory to it
 vim.keymap.set("n", "<Leader>oc", function()
-    vim.cmd("tabnew")
-    vim.cmd("tcd " .. vim.fs.dirname(vim.env.MYVIMRC))
-    vim.cmd("edit " .. vim.env.MYVIMRC)
+	vim.cmd("tabnew")
+	vim.cmd("tcd " .. vim.fs.dirname(vim.env.MYVIMRC))
+	vim.cmd("edit " .. vim.env.MYVIMRC)
 end, { noremap = true, silent = true, desc = "open configuration dir" })
 
 -- build work projects
