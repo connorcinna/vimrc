@@ -1,0 +1,1228 @@
+﻿commit 332fe6d3f7d3a6db82685c2836fd928d2cd6b4c1
+Author: Connor Cummings <connorcinna@gmail.com>
+Date:   Wed Sep 2 14:20:11 2026 -0400
+
+    the slop refactor (it did okay)
+
+diff --git a/init.lua b/init.lua
+index 9d26fcb..5701656 100644
+--- a/init.lua
++++ b/init.lua
+@@ -1,541 +1,11 @@
+-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+-if not vim.loop.fs_stat(lazypath) then
+-	vim.fn.system({
+-		"git",
+-		"clone",
+-		"--filter=blob:none",
+-		"https://github.com/folke/lazy.nvim.git",
+-		"--branch=stable", -- latest stable release
+-		lazypath,
+-	})
+-end
+--- my own imports
+-local work_config = require("work_config")
++require("options")
++require("plugins")
++require("clipboard")
+ require("svn")
+-local shell = require("shell")
+-local util = require("util")
+--- general options
+-vim.opt.rtp:prepend(lazypath)
+-vim.api.nvim_set_hl(0, "LineNrAbove", { fg = "#bcbcbc", bold = true })
+-vim.api.nvim_set_hl(0, "LineNr", { fg = "#bcbcbc", bold = true })
+-vim.api.nvim_set_hl(0, "LineNrBelow", { fg = "#bcbcbc", bold = true })
+-
+-vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappings are correct
+-vim.cmd([[set relativenumber]])
+-vim.cmd([[set nohls]])
+-vim.cmd([[set noea]])
+-vim.cmd("filetype plugin indent on")
+-vim.cmd([[hi clear MatchParen]])
+-vim.cmd([[let g:airline_theme='minimalist']])
+-vim.o.background = "dark"
+-vim.opt.autoindent = true
+-vim.o.clipboard = "unnamedplus"
+-vim.opt.termguicolors = true
+-vim.o.background = "dark"
+-
+-vim.cmd([[set shiftwidth=4]])
+-vim.cmd([[set tabstop=4 ]])
+-vim.cmd([[set expandtab ]])
+-
+--- packages
+-require("lazy").setup({
+-	"nvim-lua/plenary.nvim",
+-	"nvim-telescope/telescope.nvim",
+-	{
+-		"seblj/roslyn.nvim",
+-		ft = "cs",
+-		opts = {
+-			broad_search = true,
+-			file_watching = "roslyn",
+-		},
+-	},
+-	"mfussenegger/nvim-dap",
+-	"tpope/vim-repeat",
+-	{
+-		"windwp/nvim-autopairs",
+-		event = "InsertEnter",
+-		config = true,
+-	},
+-	{
+-		"williamboman/mason-lspconfig.nvim",
+-		dependencies = { "mason-org/mason.nvim", opts = {} },
+-		"neovim/nvim-lspconfig",
+-	},
+-	"scrooloose/nerdtree",
+-	"tmhedberg/matchit",
+-	"mileszs/ack.vim",
+-	"sjl/gundo.vim",
+-	"tpope/vim-dispatch",
+-	"godlygeek/tabular",
+-	"vim-airline/vim-airline",
+-	"vim-airline/vim-airline-themes",
+-	"slugbyte/lackluster.nvim",
+-	"aikhe/fleur.nvim",
+-	"rktjmp/lush.nvim",
+-	"ntpeters/vim-better-whitespace",
+-	-- snippets and autocomplete
+-	"L3MON4D3/LuaSnip",
+-	"saadparwaiz1/cmp_luasnip",
+-	"hrsh7th/cmp-nvim-lsp",
+-	"hrsh7th/cmp-buffer",
+-	"hrsh7th/cmp-path",
+-	"hrsh7th/cmp-cmdline",
+-	"hrsh7th/nvim-cmp",
+-	{
+-		"williamboman/mason.nvim",
+-		config = true,
+-	},
+-	{
+-		"khoido2003/roslyn-filewatch.nvim",
+-		config = function()
+-			require("roslyn_filewatch").setup()
+-		end,
+-	},
+-	{
+-		"akinsho/bufferline.nvim",
+-		version = "*",
+-		dependencies = "nvim-tree/nvim-web-devicons",
+-	},
+-	{
+-		"stevearc/conform.nvim",
+-		opts = {},
+-	},
+-})
+-
+--- config that has to happen after packages
+-
+-vim.cmd([[colorscheme lackluster]])
+-local bufferline = require("bufferline")
+-bufferline.setup({
+-	options = {
+-		mode = "tabs",
+-		style_preset = bufferline.style_preset.default,
+-	},
+-})
+-
+--- copy and paste between ssh windows
+-local function paste()
+-	return {
+-		vim.fn.split(vim.fn.getreg(""), "\n"),
+-		vim.fn.getregtype(""),
+-	}
+-end
+-
+-vim.g.clipboard = {
+-	name = "OSC 52",
+-
+-	copy = {
+-		["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+-		["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+-	},
+-	paste = {
+-		["+"] = paste,
+-		["*"] = paste,
+-	},
+-}
+-
+--- lsp
+-vim.lsp.config("*", {
+-	root_markers = { ".git", ".svn" },
+-	capabilities = capabilities,
+-})
+-require("mason").setup()
+-if work_config.enabled and vim.fn.has("win32") == 1 then
+-	vim.lsp.config("roslyn", {
+-		cmd = {
+-			"dotnet",
+-			"C:\\Users\\ccummings\\AppData\\Local\\nvim\\bin\\lib\\net9.0\\Microsoft.CodeAnalysis.LanguageServer.dll",
+-			"--logLevel", -- this property is required by the server
+-			"Information",
+-			"--extensionLogDirectory", -- this property is required by the server
+-			vim.fs.joinpath(vim.loop.os_tmpdir(), "roslyn_ls/logs"),
+-			"--stdio",
+-		},
+-		settings = {
+-			["csharp|inlay_hints"] = {
+-				csharp_enable_inlay_hints_for_implicit_object_creation = true,
+-				csharp_enable_inlay_hints_for_implicit_variable_types = true,
+-			},
+-			["csharp|code_lens"] = {
+-				dotnet_enable_references_code_lens = true,
+-			},
+-		},
+-		filetypes = { "cs", "sln", "csproj" },
+-		root_dir = vim.fs.dirname(vim.fs.find(function(name, path)
+-			return name:match(".sln")
+-		end, { limit = math.huge, type = "file" })[1]),
+-	})
+-	vim.lsp.enable("roslyn")
+-	require("mason-lspconfig").setup({
+-		ensure_installed = {
+-			"rust_analyzer",
+-			"lua_ls",
+-			"pyright",
+-		},
+-	})
+-	require("mason-lspconfig").setup_handlers({
+-		function(server_name) -- default handler (optional)
+-			require("lspconfig")[server_name].setup({})
+-		end,
+-		["lua_ls"] = function()
+-			local lspconfig = require("lspconfig")
+-			lspconfig.lua_ls.setup({
+-				settings = {
+-					Lua = {
+-						diagnostics = {
+-							globals = { "vim" },
+-						},
+-					},
+-				},
+-			})
+-		end,
+-	})
+-else
+-	require("mason-lspconfig").setup({
+-		ensure_installed = {
+-			"rust_analyzer",
+-			"gopls",
+-			"pyright",
+-			"lua_ls",
+-		},
+-	})
+-	require("mason-lspconfig").setup_handlers({
+-		function(server_name)
+-			require("lspconfig")[server_name].setup({})
+-		end,
+-	})
+-end
+-
+--- formatter
+-
+-local my_python_cmd = "python"
+-local my_python_args = { "-m", "black", "-q", "-" }
+-
+-if work_config.enabled and vim.fn.has("win32") == 1 then
+-	my_python_cmd = "cmd.exe"
+-	my_python_args = { "/c", "python", "-m", "black", "-q", "-" }
+-end
+-require("conform").setup({
+-	formatters_by_ft = {
+-		lua = { "stylua" },
+-		python = { "my_python" },
+-	},
+-	formatters = {
+-		my_python = {
+-			command = my_python_cmd,
+-			args = my_python_args,
+-			stdin = true,
+-		},
+-	},
+-	format_on_save = {
+-		timeout_ms = 2000,
+-		lsp_format = "fallback",
+-	},
+-})
+-
+--- keybinds
+-
+--- File find keybinds
+-local builtin = require("telescope.builtin")
+-vim.keymap.set("n", "<Leader>d", ":NERDTreeToggle<CR>", { noremap = true, silent = true, desc = "open nerdtree" })
+-vim.keymap.set("n", "<Leader>f", builtin.find_files, { noremap = true, silent = true, desc = "telescope find files" })
+-vim.keymap.set("n", "<Leader>fg", builtin.live_grep, { noremap = true, silent = true, desc = "telescope live grep" })
+-vim.keymap.set(
+-	"n",
+-	"<Leader>fb",
+-	builtin.current_buffer_fuzzy_find,
+-	{ noremap = true, silent = true, desc = "telescope fuzzy find current buffer" }
+-)
+-vim.keymap.set(
+-	"n",
+-	"<Leader>fcw",
+-	':lua require("telescope.builtin").grep_string({search = vim.fn.expand("<cword>")})<CR>',
+-	{ noremap = true, silent = true, desc = "telescope find current word" }
+-)
+-require("telescope").setup({})
+--- LSP Keybinds
+-vim.keymap.set(
+-	"n",
+-	"<Leader>lh",
+-	":lua vim.diagnostic.open_float()<CR>",
+-	{ noremap = true, silent = true, desc = "diagnostics popup" }
+-)
+-vim.keymap.set(
+-	"n",
+-	"<Leader>li",
+-	":lua vim.lsp.buf.hover()<CR>",
+-	{ noremap = true, silent = true, desc = "hover actions" }
+-)
+-vim.keymap.set(
+-	"n",
+-	"<Leader>lr",
+-	":lua vim.lsp.buf.references()<CR>",
+-	{ noremap = true, silent = true, desc = "find references" }
+-)
+-vim.keymap.set(
+-	"n",
+-	"<Leader>ld",
+-	":lua vim.lsp.buf.implementation()<CR>",
+-	{ noremap = true, silent = true, desc = "go to implementation" }
+-)
+-vim.keymap.set("n", "<Leader>ln", ":lua vim.lsp.buf.rename()<CR>", { noremap = true, silent = true, desc = "rename" })
+--- copy full path of current file to external clipboard
+-vim.keymap.set("n", "<Leader>yp", function()
+-	vim.fn.setreg("+", vim.fn.expand("%:p:."))
+-end)
+--- copy full path current directory to external clipboard
+-vim.keymap.set("n", "<Leader>yd", function()
+-	vim.fn.setreg("+", vim.fn.expand("%:h"))
+-end)
+--- copy current filename open without extension
+-vim.keymap.set("n", "<Leader>yn", function()
+-	vim.fn.setreg("+", vim.fn.expand("%:t:r"))
+-end)
+--- close tab
+-vim.keymap.set("n", "<Leader>tc", ":tabclose!<CR>", { noremap = true, silent = true, desc = "tab close" })
+--- new tab
+-vim.keymap.set("n", "<Leader>tn", ":tabnew<CR>", { noremap = true, silent = true, desc = "tab new" })
+-
+--- build work projects
+-if work_config.enabled then
+-	local build_output
+-	local remote_destination
+-	local function is_presentation_modified()
+-		local status = shell.do_system_cmd("svn status ../CorePresentation")
+-		for line in status:gmatch("[^\r\n]+") do
+-			if line:match("^M%s+") then
+-				return true
+-			end
+-		end
+-		return false
+-	end
+-	local function callback()
+-		vim.schedule(function()
+-			vim.ui.input({ prompt = "Build Succeeded! SCP to devkit? (y/n)" }, function(confirm)
+-				if confirm == "y" then
+-					vim.ui.input({ prompt = "Enter IP address: " }, function(ip)
+-						if string.find(remote_destination, "cjdev") ~= nil then
+-							remote_destination = "cjdev@" .. ip .. ":" .. remote_destination
+-						else
+-							remote_destination = "root@" .. ip .. ":" .. remote_destination
+-						end
+-						shell.do_async_cmd({
+-							"powershell.exe",
+-							"-NoProfile",
+-							"-Command",
+-							"scp -vr " .. build_output .. " " .. remote_destination .. " > scpout.txt",
+-						})
+-					end)
+-				end
+-			end)
+-		end)
+-	end
+-	vim.keymap.set("n", "<Leader>b", function()
+-		local dir_split = util.tokenize(vim.fn.getcwd(), "\\")
+-		for key, value in pairs(dir_split) do
+-			if string.find(value, "C2") ~= nil then
+-				vim.schedule(function()
+-					local script_name = ""
+-					if is_presentation_modified() then
+-						vim.notify("Building C2 CorePresentation + CoreAssemblies")
+-						build_output = "../CorePresentation/CorePresentationLinuxDebug/*"
+-						remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
+-						script_name = "CIIBuildCoreLinuxDevelopment64Bit.bat"
+-					else
+-						vim.notify("Building C2 CoreAssemblies only")
+-						build_output = "../CoreAssemblies/BuildOutputCoreDevelopmentCII/*"
+-						remote_destination = "/home/cjdev/projects/3dplayer/"
+-							.. value
+-							.. "/CoreBuild/StandardBuild_Data/Managed/"
+-						script_name = "CIIBuildDevelopment64Bit.bat"
+-					end
+-					shell.do_async_cmd({
+-						"powershell.exe",
+-						"-NoProfile",
+-						"-Command",
+-						"pushd ..; ./" .. script_name .. "; popd",
+-					}, callback)
+-				end)
+-				break
+-			elseif string.find(value, "C3") ~= nil then
+-				vim.schedule(function()
+-					vim.notify("Building C3")
+-					local script_name = ""
+-					if is_presentation_modified() then
+-						build_output = "../CorePresentation/CorePresentationLinuxDebug/*"
+-						remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
+-						script_name = "BuildCoreLinuxDevelopment64Bit.bat"
+-					else
+-						build_output = "../CoreAssemblies/BuildOutputCoreDevelopment/*"
+-						remote_destination = "/home/cjdev/projects/3dplayer/"
+-							.. value
+-							.. "/CoreBuild/StandardBuild_Data/Managed/"
+-						script_name = "BuildDevelopment64Bit.bat"
+-					end
+-					shell.do_async_cmd({
+-						"powershell.exe",
+-						"-NoProfile",
+-						"-Command",
+-						"pushd ..; ./" .. script_name .. "; popd",
+-					}, callback)
+-				end)
+-				break
+-			elseif string.find(value, "EPC") ~= nil then
+-				vim.schedule(function()
+-					vim.notify("Building EPC")
+-					build_output = "./GameServer_Kit/Setup/Intermediate/*"
+-					remote_destination = "/home/player/bin/ePC/"
+-				end)
+-				shell.do_async_cmd({ "dotnet", "build", ".\\GameServer_Kit\\Setup\\ePC_Kit.sln" }, callback)
+-				break
+-			else
+-				util.print("Could not identify project directory: " .. vim.fn.getcwd())
+-			end
+-		end
+-	end, { noremap = true, silent = true, desc = "build work projects" })
+-end
+-
+--- snippets
+-local ls = require("luasnip")
+--- LuaSnip snippet for C# XML documentation comments
+-local s = ls.snippet
+-local t = ls.text_node
+-local i = ls.insert_node
+-local f = ls.function_node
+-
+-ls.add_snippets("cs", {
+-	s("///", {
+-		t("/// <summary>"),
+-		t({ "", "/// " }),
+-		i(1, "Description"),
+-		t({ "", "/// </summary>" }),
+-		-- Add <param> or <returns> dynamically if needed
+-		t({ "", '/// <param name="' }),
+-		i(2, "param"),
+-		t('">'),
+-		i(3, "Description"),
+-		t("</param>"),
+-		t({ "", "/// <returns>" }),
+-		i(4, "void"),
+-		t("</returns>"),
+-	}),
+-})
+-
+-ls.add_snippets("cs", {
+-	s("///", {
+-		t("/// <summary>"),
+-		t({ "", "/// " }),
+-		i(1, "Description"),
+-		t({ "", "/// </summary>" }),
+-		-- Add <param> or <returns> dynamically if needed
+-		t({ "", '/// <param name="' }),
+-		i(2, "param"),
+-		t('">'),
+-		i(3, "Description"),
+-		t("</param>"),
+-		t({ "", "/// <returns>" }),
+-		i(4, "void"),
+-		t("</returns>"),
+-	}),
+-})
+-
+-ls.add_snippets("cs", {
+-	s("seealso", {
+-		t('<seealso href="link"/>'),
+-	}),
+-})
+-
+-ls.add_snippets("cs", {
+-	s("inheritdoc", {
+-		t("/// <inheritdoc/>"),
+-	}),
+-})
+-
+-ls.add_snippets("cs", {
+-	s("///desc", {
+-		t("/// <summary>"),
+-		t({ "", "/// " }),
+-		i(1, "Description"),
+-		t({ "", "/// </summary>" }),
+-	}),
+-})
+-
+--- autocomplete
+-
+-local cmp = require("cmp")
+-
+-cmp.setup({
+-	snippet = {
+-		-- REQUIRED - you must specify a snippet engine
+-		expand = function(args)
+-			require("luasnip").lsp_expand(args.body) -- For `luasnip` users.
+-		end,
+-	},
+-	window = {
+-		completion = cmp.config.window.bordered(),
+-		documentation = cmp.config.window.bordered(),
+-	},
+-	mapping = cmp.mapping.preset.insert({
+-		["<C-b>"] = cmp.mapping.scroll_docs(-4),
+-		["<C-f>"] = cmp.mapping.scroll_docs(4),
+-		["<C-j>"] = cmp.mapping.select_next_item(),
+-		["<C-k>"] = cmp.mapping.select_prev_item(),
+-		["<C-Space>"] = cmp.mapping.complete(),
+-		["<C-e>"] = cmp.mapping.abort(),
+-		["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+-	}),
+-	sources = cmp.config.sources({
+-		{ name = "nvim_lsp" },
+-		{ name = "luasnip" },
+-		{ name = "buffer" },
+-	}),
+-})
+-
+--- Use buffer source for `/` and `?` (if you enabled `native_menu`, this won't work anymore).
+-cmp.setup.cmdline({ "/", "?" }, {
+-	mapping = cmp.mapping.preset.cmdline(),
+-	sources = {
+-		{ name = "buffer" },
+-	},
+-})
+-
+--- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
+-cmp.setup.cmdline(":", {
+-	mapping = cmp.mapping.preset.cmdline(),
+-	sources = cmp.config.sources({
+-		{ name = "path" },
+-	}, {
+-		{ name = "cmdline" },
+-	}),
+-	matching = { disallow_symbol_nonprefix_matching = false },
+-})
+-
+--- Set up cmp with lsp
+-local capabilities = require("cmp_nvim_lsp").default_capabilities()
+-
+--- windows / work config
+-if vim.fn.has("win32") == 1 then
+-	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
+-	vim.cmd([[set ffs=dos]])
+-	vim.cmd([[set shellquote= shellxquote=]])
+-	-- vim.opt.bomb = true -- this setting is annoying and causes problems in some files
+-	if work_config.enabled then
+-		vim.opt.rtp:append(vim.fn.stdpath("config") .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
+-		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
+-		vim.env.RBTOOLS_CONFIG_PATH = "C:\\Users\\ccummings"
+-		vim.api.nvim_set_current_dir("C:\\projects\\")
+-		--DIY powershell profile
+-		vim.api.nvim_create_autocmd("TermOpen", {
+-			callback = function()
+-				local txt = vim.fs.dirname(vim.env.MYVIMRC) .. "/powershell/powershell_profile.ps1"
+-				local file, err = io.open(txt, "rb")
+-				if file then
+-					local ps_profile = file:read("*a")
+-					vim.api.nvim_chan_send(vim.bo.channel, ps_profile)
+-					vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
+-					file:close()
+-				end
+-			end, --autocmd callback function
+-		})
+-	end
+-end
++require("ui")
++require("lsp")
++require("formatter")
++require("keybinds")
++require("snippets")
++require("autocomplete")
++require("windows")
+diff --git a/lua/autocomplete.lua b/lua/autocomplete.lua
+new file mode 100644
+index 0000000..405d20b
+--- /dev/null
++++ b/lua/autocomplete.lua
+@@ -0,0 +1,50 @@
++-- autocomplete
++-- named "autocomplete" rather than "cmp" so it doesn't shadow nvim-cmp's own "cmp" module
++
++local cmp = require("cmp")
++
++cmp.setup({
++	snippet = {
++		-- REQUIRED - you must specify a snippet engine
++		expand = function(args)
++			require("luasnip").lsp_expand(args.body) -- For `luasnip` users.
++		end,
++	},
++	window = {
++		completion = cmp.config.window.bordered(),
++		documentation = cmp.config.window.bordered(),
++	},
++	mapping = cmp.mapping.preset.insert({
++		["<C-b>"] = cmp.mapping.scroll_docs(-4),
++		["<C-f>"] = cmp.mapping.scroll_docs(4),
++		["<C-j>"] = cmp.mapping.select_next_item(),
++		["<C-k>"] = cmp.mapping.select_prev_item(),
++		["<C-Space>"] = cmp.mapping.complete(),
++		["<C-e>"] = cmp.mapping.abort(),
++		["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
++	}),
++	sources = cmp.config.sources({
++		{ name = "nvim_lsp" },
++		{ name = "luasnip" },
++		{ name = "buffer" },
++	}),
++})
++
++-- Use buffer source for `/` and `?` (if you enabled `native_menu`, this won't work anymore).
++cmp.setup.cmdline({ "/", "?" }, {
++	mapping = cmp.mapping.preset.cmdline(),
++	sources = {
++		{ name = "buffer" },
++	},
++})
++
++-- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
++cmp.setup.cmdline(":", {
++	mapping = cmp.mapping.preset.cmdline(),
++	sources = cmp.config.sources({
++		{ name = "path" },
++	}, {
++		{ name = "cmdline" },
++	}),
++	matching = { disallow_symbol_nonprefix_matching = false },
++})
+diff --git a/lua/build.lua b/lua/build.lua
+new file mode 100644
+index 0000000..09f5f32
+--- /dev/null
++++ b/lua/build.lua
+@@ -0,0 +1,94 @@
++-- build work projects and scp the output to a devkit
++
++local build = {}
++
++local shell = require("shell")
++local util = require("util")
++
++local build_output
++local remote_destination
++
++local function is_presentation_modified()
++	local status = shell.do_system_cmd("svn status ../CorePresentation")
++	for line in status:gmatch("[^\r\n]+") do
++		if line:match("^M%s+") then
++			return true
++		end
++	end
++	return false
++end
++
++local function callback()
++	vim.schedule(function()
++		vim.ui.input({ prompt = "Build Succeeded! SCP to devkit? (y/n)" }, function(confirm)
++			if confirm == "y" then
++				vim.ui.input({ prompt = "Enter IP address: " }, function(ip)
++					if string.find(remote_destination, "cjdev") ~= nil then
++						remote_destination = "cjdev@" .. ip .. ":" .. remote_destination
++					else
++						remote_destination = "root@" .. ip .. ":" .. remote_destination
++					end
++					shell.do_async_cmd("scp -vr " .. build_output .. " " .. remote_destination)
++				end)
++			end
++		end)
++	end)
++end
++
++-- build the work project detected in the current working directory (C2, C3, or EPC)
++-- and offer to scp the output to a devkit once the build succeeds
++function build.run()
++	local dir_split = util.tokenize(vim.fn.getcwd(), "\\")
++	for key, value in pairs(dir_split) do
++		if string.find(value, "C2") ~= nil then
++			vim.schedule(function()
++				local script_name = ""
++				if is_presentation_modified() then
++					vim.notify("Building C2 CorePresentation + CoreAssemblies")
++					build_output = "../CorePresentation/CorePresentationLinuxDebug/*"
++					remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
++					script_name = "CIIBuildCoreLinuxDevelopment64Bit.bat"
++				else
++					vim.notify("Building C2 CoreAssemblies only")
++					build_output = "../CoreAssemblies/BuildOutputCoreDevelopmentCII/*"
++					remote_destination = "/home/cjdev/projects/3dplayer/"
++						.. value
++						.. "/CoreBuild/StandardBuild_Data/Managed/"
++					script_name = "CIIBuildDevelopment64Bit.bat"
++				end
++				shell.do_async_cmd("pushd ..; ./" .. script_name .. "; popd", callback)
++			end)
++			break
++		elseif string.find(value, "C3") ~= nil then
++			vim.schedule(function()
++				vim.notify("Building C3")
++				local script_name = ""
++				if is_presentation_modified() then
++					build_output = "../CorePresentation/CorePresentationLinuxDebug/*"
++					remote_destination = "/home/cjdev/projects/3dplayer/" .. value .. "/CoreBuild/"
++					script_name = "BuildCoreLinuxDevelopment64Bit.bat"
++				else
++					build_output = "../CoreAssemblies/BuildOutputCoreDevelopment/*"
++					remote_destination = "/home/cjdev/projects/3dplayer/"
++						.. value
++						.. "/CoreBuild/StandardBuild_Data/Managed/"
++					script_name = "BuildDevelopment64Bit.bat"
++				end
++				shell.do_async_cmd("pushd ..; ./ " .. script_name .. "; popd", callback)
++			end)
++			break
++		elseif string.find(value, "EPC") ~= nil then
++			vim.schedule(function()
++				vim.notify("Building EPC")
++				build_output = "./GameServer_Kit/Setup/Intermediate/*"
++				remote_destination = "/home/player/bin/ePC/"
++			end)
++			shell.do_async_cmd("dotnet build .\\GameServer_Kit\\Setup\\ePC_Kit.sln", callback)
++			break
++		else
++			util.print("Could not identify project directory: " .. vim.fn.getcwd())
++		end
++	end
++end
++
++return build
+diff --git a/lua/clipboard.lua b/lua/clipboard.lua
+new file mode 100644
+index 0000000..9526916
+--- /dev/null
++++ b/lua/clipboard.lua
+@@ -0,0 +1,21 @@
++-- copy and paste between ssh windows
++
++local function paste()
++	return {
++		vim.fn.split(vim.fn.getreg(""), "\n"),
++		vim.fn.getregtype(""),
++	}
++end
++
++vim.g.clipboard = {
++	name = "OSC 52",
++
++	copy = {
++		["+"] = require("vim.ui.clipboard.osc52").copy("+"),
++		["*"] = require("vim.ui.clipboard.osc52").copy("*"),
++	},
++	paste = {
++		["+"] = paste,
++		["*"] = paste,
++	},
++}
+diff --git a/lua/formatter.lua b/lua/formatter.lua
+new file mode 100644
+index 0000000..5e52654
+--- /dev/null
++++ b/lua/formatter.lua
+@@ -0,0 +1,28 @@
++-- formatter
++
++local work_config = require("work_config")
++
++local my_python_cmd = "python"
++local my_python_args = { "-m", "black", "-q", "-" }
++
++if work_config.enabled then
++	my_python_cmd = "cmd.exe"
++	my_python_args = { "/c", "python", "-m", "black", "-q", "-" }
++end
++require("conform").setup({
++	formatters_by_ft = {
++		lua = { "stylua" },
++		python = { "my_python" },
++	},
++	formatters = {
++		my_python = {
++			command = my_python_cmd,
++			args = my_python_args,
++			stdin = true,
++		},
++	},
++	format_on_save = {
++		timeout_ms = 2000,
++		lsp_format = "fallback",
++	},
++})
+diff --git a/lua/keybinds.lua b/lua/keybinds.lua
+new file mode 100644
+index 0000000..f8e9d0f
+--- /dev/null
++++ b/lua/keybinds.lua
+@@ -0,0 +1,75 @@
++-- keybinds
++
++local work_config = require("work_config")
++
++-- File find keybinds
++local builtin = require("telescope.builtin")
++vim.keymap.set("n", "<Leader>d", ":NERDTreeToggle<CR>", { noremap = true, silent = true, desc = "open nerdtree" })
++vim.keymap.set("n", "<Leader>f", builtin.find_files, { noremap = true, silent = true, desc = "telescope find files" })
++vim.keymap.set("n", "<Leader>fg", builtin.live_grep, { noremap = true, silent = true, desc = "telescope live grep" })
++vim.keymap.set(
++	"n",
++	"<Leader>fb",
++	builtin.current_buffer_fuzzy_find,
++	{ noremap = true, silent = true, desc = "telescope fuzzy find current buffer" }
++)
++vim.keymap.set(
++	"n",
++	"<Leader>fcw",
++	':lua require("telescope.builtin").grep_string({search = vim.fn.expand("<cword>")})<CR>',
++	{ noremap = true, silent = true, desc = "telescope find current word" }
++)
++require("telescope").setup({})
++
++-- LSP Keybinds
++vim.keymap.set(
++	"n",
++	"<Leader>lh",
++	":lua vim.diagnostic.open_float()<CR>",
++	{ noremap = true, silent = true, desc = "diagnostics popup" }
++)
++vim.keymap.set(
++	"n",
++	"<Leader>li",
++	":lua vim.lsp.buf.hover()<CR>",
++	{ noremap = true, silent = true, desc = "hover actions" }
++)
++vim.keymap.set(
++	"n",
++	"<Leader>lr",
++	":lua vim.lsp.buf.references()<CR>",
++	{ noremap = true, silent = true, desc = "find references" }
++)
++vim.keymap.set(
++	"n",
++	"<Leader>ld",
++	":lua vim.lsp.buf.implementation()<CR>",
++	{ noremap = true, silent = true, desc = "go to implementation" }
++)
++vim.keymap.set("n", "<Leader>ln", ":lua vim.lsp.buf.rename()<CR>", { noremap = true, silent = true, desc = "rename" })
++
++-- copy full path of current file to external clipboard
++vim.keymap.set("n", "<Leader>yp", function()
++	vim.fn.setreg("+", vim.fn.expand("%:p:."))
++end)
++-- copy full path current directory to external clipboard
++vim.keymap.set("n", "<Leader>yd", function()
++	vim.fn.setreg("+", vim.fn.expand("%:h"))
++end)
++-- copy current filename open without extension
++vim.keymap.set("n", "<Leader>yn", function()
++	vim.fn.setreg("+", vim.fn.expand("%:t:r"))
++end)
++
++-- close tab
++vim.keymap.set("n", "<Leader>tc", ":tabclose!<CR>", { noremap = true, silent = true, desc = "tab close" })
++-- new tab
++vim.keymap.set("n", "<Leader>tn", ":tabnew<CR>", { noremap = true, silent = true, desc = "tab new" })
++
++-- build work projects
++if work_config.enabled then
++	local build = require("build")
++	vim.keymap.set("n", "<Leader>b", function()
++		build.run()
++	end, { noremap = true, silent = true, desc = "build work projects" })
++end
+diff --git a/lua/lsp.lua b/lua/lsp.lua
+new file mode 100644
+index 0000000..58cb5f7
+--- /dev/null
++++ b/lua/lsp.lua
+@@ -0,0 +1,76 @@
++-- lsp
++
++local work_config = require("work_config")
++
++local capabilities = require("cmp_nvim_lsp").default_capabilities()
++
++vim.lsp.config("*", {
++	root_markers = { ".git", ".svn" },
++	capabilities = capabilities,
++})
++require("mason").setup()
++if work_config.enabled then
++	vim.lsp.config("roslyn", {
++		cmd = {
++			"dotnet",
++			"C:\\Users\\ccummings\\AppData\\Local\\nvim\\bin\\lib\\net9.0\\Microsoft.CodeAnalysis.LanguageServer.dll",
++			"--logLevel", -- this property is required by the server
++			"Information",
++			"--extensionLogDirectory", -- this property is required by the server
++			vim.fs.joinpath(vim.loop.os_tmpdir(), "roslyn_ls/logs"),
++			"--stdio",
++		},
++		settings = {
++			["csharp|inlay_hints"] = {
++				csharp_enable_inlay_hints_for_implicit_object_creation = true,
++				csharp_enable_inlay_hints_for_implicit_variable_types = true,
++			},
++			["csharp|code_lens"] = {
++				dotnet_enable_references_code_lens = true,
++			},
++		},
++		filetypes = { "cs", "sln", "csproj" },
++		root_dir = vim.fs.dirname(vim.fs.find(function(name, path)
++			return name:match(".sln")
++		end, { limit = math.huge, type = "file" })[1]),
++	})
++	vim.lsp.enable("roslyn")
++	require("mason-lspconfig").setup({
++		ensure_installed = {
++			"rust_analyzer",
++			"lua_ls",
++			"pyright",
++		},
++	})
++	require("mason-lspconfig").setup_handlers({
++		function(server_name) -- default handler (optional)
++			require("lspconfig")[server_name].setup({})
++		end,
++		["lua_ls"] = function()
++			local lspconfig = require("lspconfig")
++			lspconfig.lua_ls.setup({
++				settings = {
++					Lua = {
++						diagnostics = {
++							globals = { "vim" },
++						},
++					},
++				},
++			})
++		end,
++	})
++else
++	require("mason-lspconfig").setup({
++		ensure_installed = {
++			"rust_analyzer",
++			"gopls",
++			"pyright",
++			"lua_ls",
++		},
++	})
++	require("mason-lspconfig").setup_handlers({
++		function(server_name)
++			require("lspconfig")[server_name].setup({})
++		end,
++	})
++end
+diff --git a/lua/options.lua b/lua/options.lua
+new file mode 100644
+index 0000000..d3cd816
+--- /dev/null
++++ b/lua/options.lua
+@@ -0,0 +1,22 @@
++-- general vim options and appearance settings that don't depend on plugins
++
++vim.api.nvim_set_hl(0, "LineNrAbove", { fg = "#bcbcbc", bold = true })
++vim.api.nvim_set_hl(0, "LineNr", { fg = "#bcbcbc", bold = true })
++vim.api.nvim_set_hl(0, "LineNrBelow", { fg = "#bcbcbc", bold = true })
++
++vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappings are correct
++vim.cmd([[set relativenumber]])
++vim.cmd([[set nohls]])
++vim.cmd([[set noea]])
++vim.cmd("filetype plugin indent on")
++vim.cmd([[hi clear MatchParen]])
++vim.cmd([[let g:airline_theme='minimalist']])
++vim.o.background = "dark"
++vim.opt.autoindent = true
++vim.o.clipboard = "unnamedplus"
++vim.opt.termguicolors = true
++vim.o.background = "dark"
++
++vim.cmd([[set shiftwidth=4]])
++vim.cmd([[set tabstop=4 ]])
++vim.cmd([[set expandtab ]])
+diff --git a/lua/plugins.lua b/lua/plugins.lua
+new file mode 100644
+index 0000000..b935e8a
+--- /dev/null
++++ b/lua/plugins.lua
+@@ -0,0 +1,78 @@
++-- lazy.nvim bootstrap and plugin spec
++
++local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
++if not vim.loop.fs_stat(lazypath) then
++	vim.fn.system({
++		"git",
++		"clone",
++		"--filter=blob:none",
++		"https://github.com/folke/lazy.nvim.git",
++		"--branch=stable", -- latest stable release
++		lazypath,
++	})
++end
++vim.opt.rtp:prepend(lazypath)
++
++require("lazy").setup({
++	"nvim-lua/plenary.nvim",
++	"nvim-telescope/telescope.nvim",
++	{
++		"seblj/roslyn.nvim",
++		ft = "cs",
++		opts = {
++			broad_search = true,
++			file_watching = "roslyn",
++		},
++	},
++	"mfussenegger/nvim-dap",
++	"tpope/vim-repeat",
++	{
++		"windwp/nvim-autopairs",
++		event = "InsertEnter",
++		config = true,
++	},
++	{
++		"williamboman/mason-lspconfig.nvim",
++		dependencies = { "mason-org/mason.nvim", opts = {} },
++		"neovim/nvim-lspconfig",
++	},
++	"scrooloose/nerdtree",
++	"tmhedberg/matchit",
++	"mileszs/ack.vim",
++	"sjl/gundo.vim",
++	"tpope/vim-dispatch",
++	"godlygeek/tabular",
++	"vim-airline/vim-airline",
++	"vim-airline/vim-airline-themes",
++	"slugbyte/lackluster.nvim",
++	"aikhe/fleur.nvim",
++	"rktjmp/lush.nvim",
++	"ntpeters/vim-better-whitespace",
++	-- snippets and autocomplete
++	"L3MON4D3/LuaSnip",
++	"saadparwaiz1/cmp_luasnip",
++	"hrsh7th/cmp-nvim-lsp",
++	"hrsh7th/cmp-buffer",
++	"hrsh7th/cmp-path",
++	"hrsh7th/cmp-cmdline",
++	"hrsh7th/nvim-cmp",
++	{
++		"williamboman/mason.nvim",
++		config = true,
++	},
++	{
++		"khoido2003/roslyn-filewatch.nvim",
++		config = function()
++			require("roslyn_filewatch").setup()
++		end,
++	},
++	{
++		"akinsho/bufferline.nvim",
++		version = "*",
++		dependencies = "nvim-tree/nvim-web-devicons",
++	},
++	{
++		"stevearc/conform.nvim",
++		opts = {},
++	},
++})
+diff --git a/lua/shell.lua b/lua/shell.lua
+index 627ad62..716f877 100644
+--- a/lua/shell.lua
++++ b/lua/shell.lua
+@@ -36,7 +36,7 @@ function shell.do_async_cmd(args, callback)
+ 		anchor = "NW",
+ 		style = "minimal",
+ 		border = { "Γòö", "ΓòÉ", "Γòù", "Γòæ", "Γò¥", "ΓòÉ", "ΓòÜ", "Γòæ" },
+-		title = string.format(table.concat(args, " ")),
++		title = args,
+ 		title_pos = "center",
+ 	}
+ 	local buf = vim.api.nvim_create_buf(false, true)
+@@ -44,13 +44,13 @@ function shell.do_async_cmd(args, callback)
+ 	local win = vim.api.nvim_open_win(buf, false, window_opts)
+ 	local function on_done(obj)
+ 		if obj.code ~= 0 then
+-			util.print("Command failed: " .. table.concat(args, " "), vim.log.levels.ERROR)
++			util.print("Command failed: " .. args, vim.log.levels.ERROR)
+ 			vim.defer_fn(function()
+ 				vim.api.nvim_win_close(win, true)
+ 				vim.api.nvim_buf_delete(buf, { force = true })
+ 			end, 3000)
+ 		else
+-			util.print("Command completed: " .. table.concat(args, " "))
++			util.print("Command completed: " .. args)
+ 			vim.defer_fn(function()
+ 				vim.api.nvim_win_close(win, true)
+ 				vim.api.nvim_buf_delete(buf, { force = true })
+@@ -74,7 +74,9 @@ function shell.do_async_cmd(args, callback)
+ 			end)
+ 		end
+ 	end
+-	vim.system(args, { text = true, stdout = on_stdout_stderr, stderr = on_stdout_stderr }, on_done)
++	local final_args = { "powershell.exe", "-NoProfile", "-Command" }
++	table.insert(final_args, args)
++	vim.system(final_args, { text = true, stdout = on_stdout_stderr, stderr = on_stdout_stderr }, on_done)
+ 	vim.keymap.set("n", "q", function()
+ 		vim.api.nvim_win_close(win, true)
+ 		vim.api.nvim_buf_delete(buf, { force = true })
+diff --git a/lua/snippets.lua b/lua/snippets.lua
+new file mode 100644
+index 0000000..9f8503a
+--- /dev/null
++++ b/lua/snippets.lua
+@@ -0,0 +1,65 @@
++-- snippets
++
++local ls = require("luasnip")
++-- LuaSnip snippet for C# XML documentation comments
++local s = ls.snippet
++local t = ls.text_node
++local i = ls.insert_node
++local f = ls.function_node
++
++ls.add_snippets("cs", {
++	s("///", {
++		t("/// <summary>"),
++		t({ "", "/// " }),
++		i(1, "Description"),
++		t({ "", "/// </summary>" }),
++		-- Add <param> or <returns> dynamically if needed
++		t({ "", '/// <param name="' }),
++		i(2, "param"),
++		t('">'),
++		i(3, "Description"),
++		t("</param>"),
++		t({ "", "/// <returns>" }),
++		i(4, "void"),
++		t("</returns>"),
++	}),
++})
++
++ls.add_snippets("cs", {
++	s("///", {
++		t("/// <summary>"),
++		t({ "", "/// " }),
++		i(1, "Description"),
++		t({ "", "/// </summary>" }),
++		-- Add <param> or <returns> dynamically if needed
++		t({ "", '/// <param name="' }),
++		i(2, "param"),
++		t('">'),
++		i(3, "Description"),
++		t("</param>"),
++		t({ "", "/// <returns>" }),
++		i(4, "void"),
++		t("</returns>"),
++	}),
++})
++
++ls.add_snippets("cs", {
++	s("seealso", {
++		t('<seealso href="link"/>'),
++	}),
++})
++
++ls.add_snippets("cs", {
++	s("inheritdoc", {
++		t("/// <inheritdoc/>"),
++	}),
++})
++
++ls.add_snippets("cs", {
++	s("///desc", {
++		t("/// <summary>"),
++		t({ "", "/// " }),
++		i(1, "Description"),
++		t({ "", "/// </summary>" }),
++	}),
++})
+diff --git a/lua/ui.lua b/lua/ui.lua
+new file mode 100644
+index 0000000..cc48e6a
+--- /dev/null
++++ b/lua/ui.lua
+@@ -0,0 +1,11 @@
++-- config that has to happen after packages are loaded
++
++vim.cmd([[colorscheme lackluster]])
++
++local bufferline = require("bufferline")
++bufferline.setup({
++	options = {
++		mode = "tabs",
++		style_preset = bufferline.style_preset.default,
++	},
++})
+diff --git a/lua/windows.lua b/lua/windows.lua
+new file mode 100644
+index 0000000..a33f40b
+--- /dev/null
++++ b/lua/windows.lua
+@@ -0,0 +1,28 @@
++-- windows / work config
++
++local work_config = require("work_config")
++
++if vim.fn.has("win32") == 1 then
++	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
++	vim.cmd([[set ffs=dos]])
++	vim.cmd([[set shellquote= shellxquote=]])
++	if work_config.enabled then
++		vim.opt.rtp:append(vim.fn.stdpath("config") .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
++		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
++		vim.env.RBTOOLS_CONFIG_PATH = "C:\\Users\\ccummings"
++		vim.api.nvim_set_current_dir("C:\\projects\\")
++		--DIY powershell profile
++		vim.api.nvim_create_autocmd("TermOpen", {
++			callback = function()
++				local script = vim.fs.dirname(vim.env.MYVIMRC) .. "/powershell/powershell_profile.ps1"
++				local file, err = io.open(script, "rb")
++				if file then
++					local ps_profile = file:read("*a")
++					vim.api.nvim_chan_send(vim.bo.channel, ps_profile)
++					vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
++					file:close()
++				end
++			end, --autocmd callback function
++		})
++	end
++end
+diff --git a/lua/work_config.lua b/lua/work_config.lua
+index 4f23f8d..11cb349 100644
+--- a/lua/work_config.lua
++++ b/lua/work_config.lua
+@@ -1,6 +1,6 @@
+ local work_config = {}
+ 
+ --change this to false if not at work!
+-work_config.enabled = true
++work_config.enabled = true and vim.fn.has("win32")
+ 
+ return work_config

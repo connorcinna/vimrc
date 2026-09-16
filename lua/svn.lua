@@ -3,7 +3,7 @@ local svn = {}
 local shell = require("shell")
 local util = require("util")
 
-local STATUS_COL_LENGTH = 7
+local STATUS_COL_LENGTH = 9
 
 -- default window options passed to vim.api.nvim_open_win
 -- each function should change the "title" field
@@ -30,50 +30,31 @@ local function find_out_of_date(t)
 	return ood
 end
 
+local function on_stdout_stderr(err, data)
+	if err then
+		util.print("Shell stdout/stderr read error: " .. err, vim.log.levels.ERROR)
+	end
+	if data then
+		vim.schedule(function()
+			data = util.string_to_table(data)
+			vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
+			if vim.api.nvim_win_is_valid(win) then
+				vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(buf), 0 })
+			end
+		end)
+	end
+end
+
 -- update with '--accept postpone' and resolve in resolve()
-local function _up(buf_id, win_id, commit_hook)
+local function up()
+	shell.do_async_cmd_with_window("svn up --accept postpone")
+end
+
+local function _checkupdates(buf_id, win_id)
 	local buf = -1
 	if buf_id == nil then
 		buf = vim.api.nvim_create_buf(false, true)
-		vim.api.nvim_buf_set_name(buf, "svn_up")
-	else
-		buf = buf_id
-	end
-	local win = -1
-	if win_id == nil then
-		window_opts.title = string.format("SVN Up: %s", vim.fn.getcwd())
-		win = vim.api.nvim_open_win(buf, true, window_opts)
-		vim.keymap.set("n", "q", function()
-			vim.api.nvim_win_close(win, true)
-			vim.api.nvim_buf_delete(buf, { force = true })
-		end, { buffer = buf })
-	else
-		win = win_id
-	end
-	local output = shell.do_system_cmd("svn up --accept postpone")
-	local output_table = util.string_to_table(output)
-	vim.api.nvim_buf_set_lines(buf, -1, -1, false, output_table)
-	if commit_hook then
-		--TODO check if we need to resolve first
-		vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Update finished - enter commit mesage:" })
-		-- create empty line so that we can place the cursor on it
-		vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "" })
-		vim.api.nvim_win_set_cursor(win, { 2, 0 })
-		vim.api.nvim_feedkeys("i", "n", false)
-	else
-		vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "Update finished, press 'q' to exit." })
-	end
-end
-
-local function up(opts)
-	_up(nil, nil)
-end
-
-local function _check_updates(buf_id, win_id, commit_hook)
-	local buf = -1
-	if buf_id == nil then
-		buf = vim.api.nvim_create_buf(false, true)
-		vim.api.nvim_buf_set_name(buf, "svn_check_updates")
+		vim.api.nvim_buf_set_name(buf, "svn_checkupdates")
 	else
 		buf = buf_id
 	end
@@ -88,44 +69,23 @@ local function _check_updates(buf_id, win_id, commit_hook)
 	else
 		win = win_id
 	end
-	local check_update = shell.do_system_cmd("svn status --show-updates")
-	local update_table = util.string_to_table(check_update)
+	local checkupdate = vim.system({ "svn", "status", "--show-updates" }, { text = true }):wait().stdout
+	local update_table = util.string_to_table(checkupdate)
 	update_table = find_out_of_date(update_table)
-	if not commit_hook then
-		if #update_table > 0 then
-			table.insert(
-				update_table,
-				1,
-				"These files have updates available: Press 'u' to update, or 'q' to exit without updating"
-			)
-			vim.api.nvim_buf_set_lines(buf, 0, -1, false, update_table)
-			vim.keymap.set("n", "u", function()
-				_up(buf, win)
-			end, { buffer = buf })
-		else
-			vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Local copy up to date - press 'q' to exit." })
-		end
-	else
-		if #update_table > 0 then
-			table.insert(
-				update_table,
-				1,
-				"Files have updates available! Press 'u' to update before continuing, or 'q' to exit without updating"
-			)
-			vim.api.nvim_buf_set_lines(buf, 0, -1, false, update_table)
-			vim.keymap.set("n", "u", function()
-				_up(buf, win, commit_hook)
-			end, { buffer = buf })
-		else
-			vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Enter commit message:" })
-			vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "" })
-			vim.api.nvim_win_set_cursor(win, { 2, 0 })
-			vim.api.nvim_feedkeys("i", "n", false)
-		end
+	if #update_table > 0 then
+		table.insert(
+			update_table,
+			1,
+			"Files have updates available! Press 'u' to update before continuing, or 'q' to exit without updating"
+		)
+		vim.api.nvim_buf_set_lines(buf, 0, -1, false, update_table)
+		vim.keymap.set("n", "u", function()
+			up()
+		end, { buffer = buf })
 	end
 end
 
-local function _status()
+local function status()
 	local buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_name(buf, "svn_status")
 	window_opts.title = string.format("SVN Status: %s", vim.fn.getcwd())
@@ -187,11 +147,12 @@ local function _info()
 	end, { buffer = buf })
 end
 
-local function check_updates(opts)
-	_check_updates(nil, nil, false)
+local function checkupdates(opts)
+	_checkupdates(nil, nil)
 end
 
-local function commit(opts)
+local function commit()
+	_checkupdates()
 	local buf = vim.api.nvim_create_buf(false, true)
 	window_opts.title = "SVN Commit"
 	local win = vim.api.nvim_open_win(buf, true, window_opts)
@@ -204,14 +165,13 @@ local function commit(opts)
 	end, { buffer = buf })
 	vim.keymap.set("i", "<CR>", function()
 		local buf_text = vim.api.nvim_buf_get_lines(buf, 1, -1, false)
-		local output = shell.do_system_cmd('svn commit -m "' .. buf_text[1] .. '"')
+		local output = vim.system({ "svn", "commit", "-m", buf_text[1] }, { text = true }):wait().stdout
 		local output_table = util.string_to_table(output)
 		local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
 		vim.api.nvim_feedkeys(esc, "i", false)
 		vim.api.nvim_buf_set_lines(buf, 0, -1, false, output_table)
 		vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "Press 'q' to exit." })
 	end, { buffer = buf })
-	_check_updates(buf, win, true)
 end
 
 local function log()
@@ -246,12 +206,12 @@ local function log()
 end
 
 local function diff()
-	local modified = shell.do_system_cmd("svn status --quiet")
+	local modified = vim.system({ "svn", "status", "--quiet" }, { text = true }):wait().stdout
 	local modified_table = util.string_to_table(modified)
-	for index, line in ipairs(modified_table) do
-		local line = string.sub(line, STATUS_COL_LENGTH)
+	for _, line in ipairs(modified_table) do
+		line = string.sub(line, STATUS_COL_LENGTH)
 		local buf = vim.api.nvim_create_buf(false, true)
-		local pristine_copy = shell.do_system_cmd("svn cat " .. line)
+		local pristine_copy = vim.system({ "svn", "cat", line }, { text = true }):wait().stdout
 		--E200009 - new file, nothing to diff against
 		if string.find(pristine_copy, "E200009") then
 			pristine_copy = "New File - Nothing to diff against"
@@ -261,7 +221,7 @@ local function diff()
 		local filetype = vim.api.nvim_get_option_value("filetype", { scope = "local" })
 		--set the filetype to be the same as the left view
 		vim.api.nvim_set_option_value("filetype", filetype, { buf = buf })
-		shell.do_cmd(string.format("tabnew %s", line))
+		vim.cmd("tabnew " .. line)
 		--from this point on current window and buffer is a new tab
 		local right_win = vim.api.nvim_get_current_win()
 		local left_win = vim.api.nvim_open_win(buf, true, { split = "left", win = 0 })
@@ -287,7 +247,7 @@ local function diff()
 end
 
 local function resolve()
-	local modified = shell.do_system_cmd("svn status")
+	local modified = vim.system({ "svn", "status" }, { text = true }):wait().stdout
 	local conflicts = {}
 	local current = nil
 	for line in modified:gmatch("[^\r\n]+") do
@@ -305,7 +265,7 @@ local function resolve()
 		end
 	end
 	if next(conflicts) ~= nil then
-		conflict_filenames = ""
+		local conflict_filenames = ""
 		for _, conflict in ipairs(conflicts) do
 			conflict_filenames = conflict_filenames .. conflict.conflict .. " "
 		end
@@ -353,11 +313,7 @@ local function resolve()
 end
 
 local function blame()
-	shell.do_cmd("tabnew | r ! svn blame #")
-end
-
-local function status(opts)
-	_status()
+	vim.cmd("tabnew | r ! svn blame #")
 end
 
 local function info(opts)
@@ -369,7 +325,7 @@ vim.api.nvim_create_user_command("SvnDiff", diff, {})
 vim.api.nvim_create_user_command("SvnBlame", blame, {})
 vim.api.nvim_create_user_command("SvnLog", log, {})
 vim.api.nvim_create_user_command("SvnUp", up, {})
-vim.api.nvim_create_user_command("SvnCheck", check_updates, {})
+vim.api.nvim_create_user_command("SvnCheck", checkupdates, {})
 vim.api.nvim_create_user_command("SvnStatus", status, {})
 vim.api.nvim_create_user_command("SvnInfo", info, {})
 vim.api.nvim_create_user_command("SvnResolve", resolve, {})

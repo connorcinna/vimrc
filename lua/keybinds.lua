@@ -19,8 +19,6 @@ vim.keymap.set(
 	':lua require("telescope.builtin").grep_string({search = vim.fn.expand("<cword>")})<CR>',
 	{ noremap = true, silent = true, desc = "telescope find current word" }
 )
-require("telescope").setup({})
-
 -- LSP Keybinds
 vim.keymap.set(
 	"n",
@@ -83,10 +81,51 @@ vim.keymap.set("n", "<Leader>oc", function()
 	vim.cmd("edit " .. vim.env.MYVIMRC)
 end, { noremap = true, silent = true, desc = "open configuration dir" })
 
--- build work projects
+-- work keybinds
 if work_config.enabled then
+	-- build work projects
 	local build = require("build")
 	vim.keymap.set("n", "<Leader>b", function()
 		build.run()
 	end, { noremap = true, silent = true, desc = "build work projects" })
+	-- open unity, assuming the cwd is CorePresentation
+	vim.keymap.set("n", "<Leader>u", function()
+		vim.system({
+			"powershell.exe",
+			"-NoProfile",
+			"-Command",
+			"start ../CorePresentation/Assets/CorePresentation.unity",
+		})
+	end, { noremap = true, silent = true, desc = "open Unity project" })
 end
+
+-- debugging
+vim.keymap.set("n", "<F5>", function()
+	require("dap").continue()
+end, { desc = "Debug: Start/Continue" })
+vim.keymap.set("n", "<F10>", function()
+	require("dap").step_over()
+end, { desc = "Debug: Step Over" })
+vim.keymap.set("n", "<F11>", function()
+	require("dap").step_into()
+end, { desc = "Debug: Step Into" })
+vim.keymap.set("n", "<F12>", function()
+	require("dap").step_out()
+end, { desc = "Debug: Step Out" })
+vim.keymap.set("n", "<F1>", function()
+	require("dap").toggle_breakpoint()
+end, { desc = "Debug: Toggle Breakpoint" })
+vim.keymap.set("n", "<Leader>du", function()
+	require("dapui").toggle()
+end, { desc = "Dap UI" })
+
+-- generic commands, not keybinds
+
+vim.api.nvim_create_user_command("WipeUnlisted", function()
+	local count = 0
+	for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+		if not vim.bo[bufnr].buflisted then
+			vim.api.nvim_buf_delete(bufnr, { force = true })
+		end
+	end
+end, {})

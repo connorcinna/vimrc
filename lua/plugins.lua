@@ -16,6 +16,8 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
 	"nvim-lua/plenary.nvim",
 	"nvim-telescope/telescope.nvim",
+	"nvim-telescope/telescope-dap.nvim",
+	"nvim-telescope/telescope-ui-select.nvim",
 	{
 		"seblj/roslyn.nvim",
 		ft = "cs",
@@ -25,6 +27,12 @@ require("lazy").setup({
 		},
 	},
 	"mfussenegger/nvim-dap",
+	"ownself/nvim-dap-unity",
+	"theHamsta/nvim-dap-virtual-text",
+	{
+		"rcarriga/nvim-dap-ui",
+		dependencies = { "nvim-neotest/nvim-nio" },
+	},
 	"tpope/vim-repeat",
 	{
 		"windwp/nvim-autopairs",
@@ -79,6 +87,15 @@ require("lazy").setup({
 	},
 })
 
+-- telescope
+require("telescope").setup({
+	extensions = {
+		require("telescope.themes").get_dropdown({}),
+	},
+})
+require("telescope").load_extension("dap")
+require("telescope").load_extension("ui-select")
+
 -- nvim-tree config
 local config = {
 	sync_root_with_cwd = true,
@@ -102,3 +119,4 @@ local config = {
 	},
 }
 require("nvim-tree").setup(config)
+require("dapui").setup()

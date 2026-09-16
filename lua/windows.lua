@@ -3,7 +3,7 @@
 local work_config = require("work_config")
 
 if vim.fn.has("win32") == 1 then
-	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+	vim.o.shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoLogo -NoProfile"
 	vim.o.shellcmdflag =
 		"-NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();$PSDefaultParameterValues['Out-File:Encoding']='utf8';"
 	vim.o.shellpipe = "> %s 2>&1"
@@ -23,6 +23,7 @@ if vim.fn.has("win32") == 1 then
 					local ps_profile = file:read("*a")
 					vim.api.nvim_chan_send(vim.bo.channel, ps_profile)
 					vim.api.nvim_chan_send(vim.bo.channel, "clear\r")
+					vim.api.nvim_feedkeys("Gi", "n", false)
 					file:close()
 				end
 			end,

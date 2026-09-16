@@ -11,8 +11,7 @@ end
 
 function util.string_to_table(s)
 	local t = {}
-	s = s:gsub("\r\n", "\n")
-	for line in s:gmatch("(.-)\n") do
+	for line in s:gmatch("[^\r\n]+") do
 		table.insert(t, line)
 	end
 	return t
