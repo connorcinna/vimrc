@@ -33,9 +33,6 @@ local function unity_project_root()
 	return vim.fn.getcwd()
 end
 
--- Remote attach: prompt for the machine's IP and the Unity process' PID. Unity's
--- Mono soft debugger listens on 56000 + (pid % 1000), so IP + PID is enough to
--- build the endpoint.
 table.insert(dap.configurations.cs, {
 	type = "unity",
 	name = "attach - remote Unity (IP + Port)",
@@ -43,7 +40,7 @@ table.insert(dap.configurations.cs, {
 	logFile = vim.fn.stdpath("data") .. "\\vstuc.log",
 	projectPath = unity_project_root,
 	endPoint = function()
-		local ip = vim.fn.input("Unity host IP: ", "127.0.0.1")
+		local ip = vim.fn.input("Unity host IP: ")
 		if ip == "" then
 			error("remote Unity attach: no IP provided", 0)
 		end
