@@ -7,10 +7,10 @@ function build.run()
 	local cwd = vim.fn.getcwd()
 	local build_actions = {}
 	-- 3dplayer
-	if string.find(cwd, "3dplayer") ~= nil then
+	if string.find(cwd, "3dplayer") then
 		vim.cmd("cd ..")
 		for name, _ in vim.fs.dir(vim.fn.getcwd()) do
-			if string.find(name, ".bat") ~= nil then
+			if string.find(name, ".bat") then
 				table.insert(build_actions, "pushd ..; ./" .. name .. "; popd")
 			end
 		end

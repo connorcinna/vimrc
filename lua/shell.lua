@@ -51,7 +51,7 @@ local function on_done(obj)
 			vim.defer_fn(function()
 				vim.api.nvim_win_close(shell_gui.win, true)
 				vim.api.nvim_buf_delete(shell_gui.buf, { force = true })
-				if shell_gui.callback ~= nil then
+				if shell_gui.callback then
 					shell_gui.callback()
 				end
 			end, 1000)
@@ -60,12 +60,12 @@ local function on_done(obj)
 end
 
 function shell.do_async_cmd_with_window(args, opts, win_config, callback)
-	if nil ~= win_config then
+	if win_config then
 		for key, value in pairs(win_config) do
 			shell_gui.win_config[key] = value
 		end
 	end
-	if nil ~= opts then
+	if opts then
 		for key, value in pairs(opts) do
 			shell_gui.opts[key] = value
 		end

@@ -82,12 +82,11 @@ function updatevim {
         popd
     }
     elseif ($Operation -ieq "push") {
-        pushd $env:VIMVCDIR
+        cd $env:VIMVCDIR
         cp $env:VIMDIR\init.lua .
         cp -r $env:VIMDIR\lua\* .\lua\
         cp -r $env:VIMDIR\powershell\* .\powershell\
         git status
-        popd
     }
     else {
         Write-Error "Operation must be 'push' or 'pull' (got: '$Operation')"

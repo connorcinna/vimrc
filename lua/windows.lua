@@ -7,7 +7,6 @@ if vim.fn.has("win32") == 1 then
 	vim.o.shellcmdflag =
 		"-NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();$PSDefaultParameterValues['Out-File:Encoding']='utf8';"
 	vim.o.shellpipe = "> %s 2>&1"
-	vim.cmd([[set ffs=dos,unix]])
 	vim.cmd([[set shellquote= shellxquote=]])
 	if work_config.enabled then
 		vim.opt.rtp:append(vim.fn.stdpath("config") .. "C:/Users/ccummings/AppData/Local/nvim/runtime")

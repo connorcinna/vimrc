@@ -3,8 +3,6 @@ local svn = {}
 local shell = require("shell")
 local util = require("util")
 
-local STATUS_COL_LENGTH = 9
-
 -- default window options passed to vim.api.nvim_open_win
 -- each function should change the "title" field
 local win_config = {
@@ -23,7 +21,7 @@ local win_config = {
 local function find_out_of_date(t)
 	local ood = {}
 	for _, line in ipairs(t) do
-		if string.find(line, "*") ~= nil then
+		if string.find(line, "*") then
 			table.insert(ood, line)
 		end
 	end
@@ -32,7 +30,7 @@ end
 
 -- update with '--accept postpone' and resolve in resolve()
 local function up()
-	shell.do_async_cmd_with_window("svn up --accept postpone", { auto_close = false, enter = true }, win_config)
+	shell.do_async_cmd_with_window("svn up --accept postpone", { auto_close = true, enter = false }, win_config)
 end
 
 local function _checkupdates(buf_id, win_id)
@@ -83,7 +81,7 @@ local function checkupdates(opts)
 end
 
 local function commit()
-	_checkupdates()
+	-- _checkupdates()
 	local buf = vim.api.nvim_create_buf(false, true)
 	win_config.title = "SVN Commit"
 	local win = vim.api.nvim_open_win(buf, true, win_config)
@@ -113,48 +111,51 @@ local function diff()
 	local modified = vim.system({ "svn", "status", "--quiet" }, { text = true }):wait().stdout
 	local modified_table = util.string_to_table(modified)
 	for _, line in ipairs(modified_table) do
-		line = string.sub(line, STATUS_COL_LENGTH)
-		local buf = vim.api.nvim_create_buf(false, true)
-		local pristine_copy = vim.system({ "svn", "cat", line }, { text = true }):wait().stdout
-		--E200009 - new file, nothing to diff against
-		if string.find(pristine_copy, "E200009") then
-			pristine_copy = "New File - Nothing to diff against"
+		line = line:match("^M%s+(.+)$")
+		if line then
+			local buf = vim.api.nvim_create_buf(false, true)
+			local pristine_copy = vim.system({ "svn", "cat", line }, { text = true }):wait().stdout
+			--E200009 - new file, nothing to diff against
+			if string.find(pristine_copy, "E200009") then
+				pristine_copy = "New File - Nothing to diff against"
+			end
+			local pristine_copy_table = util.string_to_table(pristine_copy)
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, pristine_copy_table)
+			local filetype = vim.api.nvim_get_option_value("filetype", { scope = "local" })
+			--set the filetype to be the same as the left view
+			vim.api.nvim_set_option_value("filetype", filetype, { buf = buf })
+			vim.cmd("tabnew " .. line)
+			--from this point on current window and buffer is a new tab
+			local right_win = vim.api.nvim_get_current_win()
+			local left_win = vim.api.nvim_open_win(buf, true, { split = "left", win = 0 })
+			--set diff options
+			-- right window
+			vim.api.nvim_set_option_value("diff", true, { win = right_win })
+			vim.api.nvim_set_option_value("scrollbind", true, { win = right_win })
+			vim.api.nvim_set_option_value("cursorbind", true, { win = right_win })
+			vim.api.nvim_set_option_value("wrap", false, { win = right_win })
+			vim.api.nvim_set_option_value("foldmethod", "diff", { win = right_win })
+			vim.api.nvim_set_option_value("foldcolumn", "2", { win = right_win })
+
+			-- left window
+			vim.api.nvim_set_option_value("diff", true, { win = left_win })
+			vim.api.nvim_set_option_value("scrollbind", true, { win = left_win })
+			vim.api.nvim_set_option_value("cursorbind", true, { win = left_win })
+			vim.api.nvim_set_option_value("wrap", false, { win = left_win })
+			vim.api.nvim_set_option_value("foldmethod", "diff", { win = left_win })
+			vim.api.nvim_set_option_value("foldcolumn", "2", { win = left_win })
+
+			vim.api.nvim_set_current_win(right_win)
 		end
-		local pristine_copy_table = util.string_to_table(pristine_copy)
-		vim.api.nvim_buf_set_lines(buf, 0, -1, false, pristine_copy_table)
-		local filetype = vim.api.nvim_get_option_value("filetype", { scope = "local" })
-		--set the filetype to be the same as the left view
-		vim.api.nvim_set_option_value("filetype", filetype, { buf = buf })
-		vim.cmd("tabnew " .. line)
-		--from this point on current window and buffer is a new tab
-		local right_win = vim.api.nvim_get_current_win()
-		local left_win = vim.api.nvim_open_win(buf, true, { split = "left", win = 0 })
-		--set diff options
-		-- right window
-		vim.api.nvim_set_option_value("diff", true, { win = right_win })
-		vim.api.nvim_set_option_value("scrollbind", true, { win = right_win })
-		vim.api.nvim_set_option_value("cursorbind", true, { win = right_win })
-		vim.api.nvim_set_option_value("wrap", false, { win = right_win })
-		vim.api.nvim_set_option_value("foldmethod", "diff", { win = right_win })
-		vim.api.nvim_set_option_value("foldcolumn", "2", { win = right_win })
-
-		-- left window
-		vim.api.nvim_set_option_value("diff", true, { win = left_win })
-		vim.api.nvim_set_option_value("scrollbind", true, { win = left_win })
-		vim.api.nvim_set_option_value("cursorbind", true, { win = left_win })
-		vim.api.nvim_set_option_value("wrap", false, { win = left_win })
-		vim.api.nvim_set_option_value("foldmethod", "diff", { win = left_win })
-		vim.api.nvim_set_option_value("foldcolumn", "2", { win = left_win })
-
-		vim.api.nvim_set_current_win(right_win)
 	end
 end
 
 local function resolve()
 	local modified = vim.system({ "svn", "status" }, { text = true }):wait().stdout
+	local modified_table = util.string_to_table(modified)
 	local conflicts = {}
 	local current = nil
-	for line in modified:gmatch("[^\r\n]+") do
+	for _, line in ipairs(modified_table) do
 		if line:match("^C%s+") then
 			current = {
 				conflict = line:match("^C%s+(.+)$"),
@@ -168,7 +169,7 @@ local function resolve()
 			end
 		end
 	end
-	if next(conflicts) ~= nil then
+	if next(conflicts) then
 		local conflict_filenames = ""
 		for _, conflict in ipairs(conflicts) do
 			conflict_filenames = conflict_filenames .. conflict.conflict .. " "
