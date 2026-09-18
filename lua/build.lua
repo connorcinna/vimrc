@@ -22,7 +22,7 @@ function build.run()
 	vim.ui.select(build_actions, {
 		prompt = "Select project to build:",
 	}, function(choice)
-		shell.do_async_cmd_with_window(choice, nil, true)
+		shell.do_async_cmd_with_window(choice, { auto_close = true })
 	end)
 end
 

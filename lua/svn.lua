@@ -7,7 +7,7 @@ local STATUS_COL_LENGTH = 9
 
 -- default window options passed to vim.api.nvim_open_win
 -- each function should change the "title" field
-local window_opts = {
+local win_config = {
 	relative = "cursor",
 	width = 120,
 	height = 40,
@@ -30,24 +30,9 @@ local function find_out_of_date(t)
 	return ood
 end
 
-local function on_stdout_stderr(err, data)
-	if err then
-		util.print("Shell stdout/stderr read error: " .. err, vim.log.levels.ERROR)
-	end
-	if data then
-		vim.schedule(function()
-			data = util.string_to_table(data)
-			vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-			if vim.api.nvim_win_is_valid(win) then
-				vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(buf), 0 })
-			end
-		end)
-	end
-end
-
 -- update with '--accept postpone' and resolve in resolve()
 local function up()
-	shell.do_async_cmd_with_window("svn up --accept postpone")
+	shell.do_async_cmd_with_window("svn up --accept postpone", { auto_close = false, enter = true }, win_config)
 end
 
 local function _checkupdates(buf_id, win_id)
@@ -60,8 +45,8 @@ local function _checkupdates(buf_id, win_id)
 	end
 	local win = -1
 	if win_id == nil then
-		window_opts.title = string.format("SVN Remote Updates: %s", vim.fn.getcwd())
-		win = vim.api.nvim_open_win(buf, true, window_opts)
+		win_config.title = string.format("SVN Remote Updates: %s", vim.fn.getcwd())
+		win = vim.api.nvim_open_win(buf, true, win_config)
 		vim.keymap.set("n", "q", function()
 			vim.api.nvim_win_close(win, true)
 			vim.api.nvim_buf_delete(buf, { force = true })
@@ -86,65 +71,11 @@ local function _checkupdates(buf_id, win_id)
 end
 
 local function status()
-	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_name(buf, "svn_status")
-	window_opts.title = string.format("SVN Status: %s", vim.fn.getcwd())
-	local win = vim.api.nvim_open_win(buf, true, window_opts)
-	vim.fn.jobstart({ "svn", "status" }, {
-		on_stdout = function(_, data)
-			vim.schedule(function()
-				if data then
-					data = util.filter_from_table(data, "\r")
-					vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-				end
-			end)
-		end,
-		on_stderr = function(_, data)
-			vim.schedule(function()
-				if data then
-					data = util.filter_from_table(data, "\r")
-					vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-				end
-			end)
-		end,
-		stdout_buffered = false,
-		stderr_buffered = false,
-	})
-	vim.keymap.set("n", "q", function()
-		vim.api.nvim_win_close(win, true)
-		vim.api.nvim_buf_delete(buf, { force = true })
-	end, { buffer = buf })
+	shell.do_async_cmd_with_window("svn status", { auto_close = false, enter = true }, win_config)
 end
 
-local function _info()
-	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_name(buf, "svn_info")
-	window_opts.title = string.format("SVN Info: %s", vim.fn.getcwd())
-	local win = vim.api.nvim_open_win(buf, true, window_opts)
-	vim.fn.jobstart({ "svn", "info" }, {
-		on_stdout = function(_, data)
-			vim.schedule(function()
-				if data then
-					data = util.filter_from_table(data, "\r")
-					vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-				end
-			end)
-		end,
-		on_stderr = function(_, data)
-			vim.schedule(function()
-				if data then
-					data = util.filter_from_table(data, "\r")
-					vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-				end
-			end)
-		end,
-		stdout_buffered = false,
-		stderr_buffered = false,
-	})
-	vim.keymap.set("n", "q", function()
-		vim.api.nvim_win_close(win, true)
-		vim.api.nvim_buf_delete(buf, { force = true })
-	end, { buffer = buf })
+local function info()
+	shell.do_async_cmd_with_window("svn info", { auto_close = false, enter = true }, win_config)
 end
 
 local function checkupdates(opts)
@@ -154,8 +85,8 @@ end
 local function commit()
 	_checkupdates()
 	local buf = vim.api.nvim_create_buf(false, true)
-	window_opts.title = "SVN Commit"
-	local win = vim.api.nvim_open_win(buf, true, window_opts)
+	win_config.title = "SVN Commit"
+	local win = vim.api.nvim_open_win(buf, true, win_config)
 	vim.api.nvim_buf_set_name(buf, "svn_commit")
 	vim.keymap.set("n", "q", function()
 		vim.api.nvim_buf_delete(buf, { force = true })
@@ -175,34 +106,7 @@ local function commit()
 end
 
 local function log()
-	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_name(buf, "svn_log")
-	window_opts.title = string.format("SVN Log: %s", vim.fn.getcwd())
-	local win = vim.api.nvim_open_win(buf, true, window_opts)
-	vim.fn.jobstart({ "svn", "log" }, {
-		on_stdout = function(_, data)
-			vim.schedule(function()
-				if data then
-					data = util.filter_from_table(data, "\r")
-					vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-				end
-			end)
-		end,
-		on_stderr = function(_, data)
-			vim.schedule(function()
-				if data then
-					data = util.filter_from_table(data, "\r")
-					vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-				end
-			end)
-		end,
-		stdout_buffered = false,
-		stderr_buffered = false,
-	})
-	vim.keymap.set("n", "q", function()
-		vim.api.nvim_win_close(win, true)
-		vim.api.nvim_buf_delete(buf, { force = true })
-	end, { buffer = buf })
+	shell.do_async_cmd_with_window("svn log", { auto_close = false, enter = true }, win_config)
 end
 
 local function diff()
@@ -314,10 +218,6 @@ end
 
 local function blame()
 	vim.cmd("tabnew | r ! svn blame #")
-end
-
-local function info(opts)
-	_info()
 end
 
 vim.api.nvim_create_user_command("SvnCommit", commit, {})
