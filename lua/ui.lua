@@ -1,6 +1,6 @@
 -- config that has to happen after packages are loaded
 
-vim.cmd([[colorscheme lackluster]])
+-- vim.cmd([[colorscheme lackluster]])
 
 local bufferline = require("bufferline")
 bufferline.setup({

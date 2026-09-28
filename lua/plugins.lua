@@ -57,6 +57,15 @@ require("lazy").setup({
 	"slugbyte/lackluster.nvim",
 	"aikhe/fleur.nvim",
 	"rktjmp/lush.nvim",
+	{
+		"2giosangmitom/nightfall.nvim",
+		lazy = false,
+		opts = {},
+		config = function(_, opts)
+			require("nightfall").setup(opts)
+			vim.cmd.colorscheme("maron")
+		end,
+	},
 	"ntpeters/vim-better-whitespace",
 	-- snippets and autocomplete
 	"L3MON4D3/LuaSnip",

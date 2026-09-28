@@ -21,25 +21,34 @@ function findgame {
     param(
     [Parameter(Mandatory)]
     [string]$Name,
-
-    [string]$Contains
+    [Parameter(Mandatory)]
+    [string]$Class,
     )
-    $filter = if ($Contains) {
-        "*$Name*$Contains*.tar.enc"
+    $FileEnding = if ($Class -eq "C2") {
+        ".iso"
     }
     else {
-        "*$Name*.tar.enc"
+        ".tar.enc"
     }
-    Get-ChildItem -Path G:\BuildStaging\GTI_Kit_Builds -Filter $filter -Recurse -ErrorAction SilentlyContinue| Select-Object -First 1 -ExpandProperty FullName | Tee-Object -Variable "copied" | Set-Clipboard; $copied
+    $Filter = "*$Name*$FileEnding"
+    Get-ChildItem -Path G:\BuildStaging\GTI_Kit_Builds -Filter $filter -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName | Tee-Object -Variable "copied" | Set-Clipboard; $copied
 }
 
 function findlatestplayer {
     param(
     [Parameter(Mandatory)]
     [string]$Name
+    [Parameter(Mandatory)]
+    [string]$Class
     )
+    $FileEnding = if ($Class -eq "C2") {
+        ".iso"
+    }
+    else {
+        ".tar.enc"
+    }
 
-    Get-ChildItem -Path G:\Platform_Builds\Player_Kit_Builds\Built_Kits\$Name -Recurse -Filter "*.tar.enc" 2>$null | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName | Tee-Object -Variable "copied" | Set-Clipboard; $copied
+    Get-ChildItem -Path G:\Platform_Builds\Player_Kit_Builds\Built_Kits\$Name -Recurse -Filter "*$FileEnding" 2>$null | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName | Tee-Object -Variable "copied" | Set-Clipboard; $copied
 }
 
 function svndiff {
