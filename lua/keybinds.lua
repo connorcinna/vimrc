@@ -28,7 +28,7 @@ vim.keymap.set(
 )
 vim.keymap.set(
 	"n",
-	"<Leader>li",
+	"<Leader>lo",
 	":lua vim.lsp.buf.hover()<CR>",
 	{ noremap = true, silent = true, desc = "hover actions" }
 )
@@ -41,6 +41,12 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<Leader>ld",
+	":lua vim.lsp.buf.definition()<CR>",
+	{ noremap = true, silent = true, desc = "go to implementation" }
+)
+vim.keymap.set(
+	"n",
+	"<Leader>li",
 	":lua vim.lsp.buf.implementation()<CR>",
 	{ noremap = true, silent = true, desc = "go to implementation" }
 )
