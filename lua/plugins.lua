@@ -71,6 +71,7 @@ require("lazy").setup({
             vim.cmd.colorscheme("maron")
         end,
     },
+    { 'akinsho/git-conflict.nvim', version = "*", config = true },
     "ntpeters/vim-better-whitespace",
     -- snippets and autocomplete
     "L3MON4D3/LuaSnip",

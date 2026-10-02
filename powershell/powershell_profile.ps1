@@ -3,6 +3,7 @@ $env:VIMDIR = "C:\Users\ccummings\AppData\Local\nvim"
 $env:VIMVCDIR = "C:\projects\configvim"
 
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
+Set-PSReadlineKeyHandler -Key Tab -Function Complete
 
 function realpath {
     Resolve-Path $args[0] | Select-Object -First 1 -ExpandProperty Path | Tee-Object -Variable "copied" | Set-Clipboard; $copied
@@ -22,7 +23,7 @@ function findgame {
     [Parameter(Mandatory)]
     [string]$Name,
     [Parameter(Mandatory)]
-    [string]$Class,
+    [string]$Class
     )
     $FileEnding = if ($Class -eq "C2") {
         ".iso"
@@ -37,7 +38,7 @@ function findgame {
 function findlatestplayer {
     param(
     [Parameter(Mandatory)]
-    [string]$Name
+    [string]$Name,
     [Parameter(Mandatory)]
     [string]$Class
     )
