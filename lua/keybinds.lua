@@ -9,12 +9,6 @@ vim.keymap.set("n", "<Leader>f", builtin.find_files, { noremap = true, silent = 
 vim.keymap.set("n", "<Leader>fg", builtin.live_grep, { noremap = true, silent = true, desc = "telescope live grep" })
 vim.keymap.set(
 	"n",
-	"<Leader>fb",
-	builtin.current_buffer_fuzzy_find,
-	{ noremap = true, silent = true, desc = "telescope fuzzy find current buffer" }
-)
-vim.keymap.set(
-	"n",
 	"<Leader>fcw",
 	':lua require("telescope.builtin").grep_string({search = vim.fn.expand("<cword>")})<CR>',
 	{ noremap = true, silent = true, desc = "telescope find current word" }
@@ -91,9 +85,15 @@ end, { noremap = true, silent = true, desc = "open configuration dir" })
 if work_config.enabled then
 	-- build work projects
 	local build = require("build")
-	vim.keymap.set("n", "<Leader>b", function()
+	vim.keymap.set("n", "<Leader>bb", function()
 		build.run()
 	end, { noremap = true, silent = true, desc = "build work projects" })
+
+	-- copy work projects
+	vim.keymap.set("n", "<Leader>bc", function()
+		build.copy()
+	end, { noremap = true, silent = true, desc = "copy work projects" })
+
 	-- open unity, assuming the cwd is CorePresentation
 	vim.keymap.set("n", "<Leader>u", function()
 		vim.system({
@@ -106,20 +106,21 @@ if work_config.enabled then
 end
 
 -- debugging
+local dap = require("dap")
 vim.keymap.set("n", "<F5>", function()
-	require("dap").continue()
+	dap.continue()
 end, { desc = "Debug: Start/Continue" })
 vim.keymap.set("n", "<F10>", function()
-	require("dap").step_over()
+	dap.step_over()
 end, { desc = "Debug: Step Over" })
 vim.keymap.set("n", "<F11>", function()
-	require("dap").step_into()
+	dap.step_into()
 end, { desc = "Debug: Step Into" })
 vim.keymap.set("n", "<F12>", function()
-	require("dap").step_out()
+	dap.step_out()
 end, { desc = "Debug: Step Out" })
 vim.keymap.set("n", "<F1>", function()
-	require("dap").toggle_breakpoint()
+	dap.toggle_breakpoint()
 end, { desc = "Debug: Toggle Breakpoint" })
 vim.keymap.set("n", "<Leader>du", function()
 	require("dapui").toggle()

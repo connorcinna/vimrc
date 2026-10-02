@@ -18,34 +18,6 @@ function svnurl {
     svn info $dirpath | sls "^URL:\s(.+)$" | ForEach-Object {$_.Matches[0].Groups[1].Value } | Tee-Object -Variable "copied" | Set-Clipboard; $copied
 }
 
-function PostCodeReview {
-    # TODO cannot use cached file because it will be unversioned and thus not cleaned up when shelving happens
-    # need to use bug-searcher python script to search for bug name to see if a review exists for it already
-    $CacheFile = ".rbtout"
-    $Diff = "svn diff -x --ignore-eol-style --patch-compatible"
-    $Command = "rbt post --diff-filename=-"
-    $Branch = $(svnurl)
-    if ($(Test-Path -Path $CacheFile)) {
-        $ReviewId = sls "#([0-9]+)" -Path $CacheFile | ForEach-Object { $_.Matches[0].Groups[1].Value }
-        $Command = $Command + " -r $ReviewId"
-    }
-    $Shelves = $(svn x-shelves -q) -split "\n"
-    $Index = 0
-    $UserIn = 0
-    foreach ($i in $Shelves) {
-        $Index += 1
-        echo "${Index}: $i"
-    }
-    while ($null -ne ($UserIn -as [int]) -and ($UserIn -lt 1 -or $UserIn -gt $Shelves.Length)) {
-        Write-Host "Select which bug this is for: [1 -{$Shelves}.Length]" -NoNewLine
-        $UserIn = Read-Host
-    }
-    $ChosenShelf = $Shelves[$UserIn-1]
-    $IssueKey = $ChosenShelf | sls "(BUG-[0-9]+)" | ForEach-Object { $_.Matches[0].Groups[1].Value }
-    $Command = $Command + " --bugs-closed=${IssueKey}"
-    $Command
-}
-
 function findgame {
     param(
     [Parameter(Mandatory)]
