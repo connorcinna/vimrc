@@ -1,3 +1,4 @@
+WorkConfig = require("work_config")
 require("options")
 require("plugins")
 require("clipboard")

@@ -10,7 +10,6 @@ vim.cmd([[set nohls]])
 vim.cmd([[set noea]])
 vim.cmd("filetype plugin indent on")
 vim.cmd([[hi clear MatchParen]])
-vim.cmd([[let g:airline_theme='minimalist']])
 vim.o.background = "dark"
 vim.opt.autoindent = true
 vim.o.clipboard = "unnamedplus"
