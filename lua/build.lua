@@ -11,86 +11,89 @@ function build.run()
 		vim.cmd("cd ..")
 		for name, _ in vim.fs.dir(vim.fn.getcwd()) do
 			if string.find(name, ".bat") then
-				table.insert(build_actions, "pushd ..; ./" .. name .. "; popd")
+				table.insert(build_actions, { name = name, action = "pushd ..; ./" .. name .. "; popd" })
 			end
 		end
 		vim.cmd("cd " .. cwd)
 	-- EPC
 	else
-		table.insert(build_actions, "dotnet build GameServer_Kit/Setup/ePC_Kit.sln")
+		table.insert(build_actions, { name = "EPC", action = "dotnet build GameServer_Kit/Setup/ePC_Kit.sln" })
 	end
 	vim.ui.select(build_actions, {
 		prompt = "Select project to build:",
+		format_item = function(item)
+			return item.name
+		end,
 	}, function(choice)
-		shell.do_async_cmd_with_window(choice, { auto_close = true })
+		shell.do_async_cmd_with_window(choice.action, { auto_close = true }, { title = choice.name })
 	end)
 end
 
 function build.copy()
-	local COREASSEMBLIES = "Core Assemblies"
-	local COREASSEMBLIESCII = "Core Assemblies CII"
-	local COREASSEMBLIESHHR = "Core Assemblies HHR"
-	local COREASSEMBLIESETABS = "Core Assemblies ETABS"
-	local COREFULL = "Core Presentation + Core Assemblies"
-	local EPC = "EPC binaries"
-	local SQL = "SQL Scripts"
-	local copy_actions = {}
-	local version
-	local remote_base_dir
-	local user
+	local copy_data = {}
 	local cwd = vim.fn.getcwd()
 	local _, end_pos = string.find(cwd, "3dplayer")
 	if end_pos then
-		user = "cjdev"
-		version = string.match(cwd, "\\(.+)\\", end_pos + 1)
-		remote_base_dir = "/home/cjdev/projects/3dplayer"
-		--TODO only insert the build directories that actually exist
-		table.insert(copy_actions, COREFULL)
-		table.insert(copy_actions, COREASSEMBLIES)
-		table.insert(copy_actions, COREASSEMBLIESCII)
-		table.insert(copy_actions, COREASSEMBLIESHHR)
-		table.insert(copy_actions, COREASSEMBLIESETABS)
+		local version = string.match(cwd, "\\(.+)\\", end_pos + 1)
+		local remote_base_dir = "/home/cjdev/projects/3dplayer"
+		-- Assemblies build output
+		local core_assemblies_dir = "../CoreAssemblies"
+		local core_presentation_dir = "../CorePresentation"
+		for name, _ in vim.fs.dir(core_assemblies_dir) do
+			if string.find(name, "BuildOutputCore") then
+				table.insert(copy_data, {
+					name = name,
+					title = string.format("Copy %s to devkit", name),
+					user = "cjdev",
+					build_output = string.format("%s/%s", core_assemblies_dir, name),
+					remote_dir = string.format("%s/%s/CoreBuild/StandardBuild_Data/Managed", remote_base_dir, version),
+				})
+			end
+		end
+		-- unity + assemblies build output
+		for name, _ in vim.fs.dir(core_presentation_dir) do
+			if string.find(name, "CorePresentationLinux") then
+				table.insert(copy_data, {
+					name = name,
+					title = string.format("Copy %s to devkit", name),
+					user = "cjdev",
+					build_output = string.format("%s/%s", core_presentation_dir, name),
+					remote_dir = string.format("%s/%s/CoreBuild", remote_base_dir, version),
+				})
+			end
+		end
 	-- EPC
 	else
-		user = "root"
-		remote_base_dir = "/home/player/bin/ePC"
-		table.insert(copy_actions, EPC)
-		table.insert(copy_actions, SQL)
+		local remote_base_dir = "/home/player/bin/ePC"
+		table.insert(copy_data, {
+			name = "EPC Binaries",
+			title = "Copy EPC Binaries to devkit",
+			user = "root",
+			build_output = "GameServer_Kit/Setup/Intermediate",
+			remote_dir = string.format("%s", remote_base_dir),
+		})
+		table.insert(copy_data, {
+			name = "SQL Scripts",
+			user = "root",
+			title = "Copy SQL Scripts to devkit",
+			build_output = "Common_Dependencies/SQL",
+			remote_dir = string.format("%s/SQL", remote_base_dir),
+		})
 	end
-	vim.ui.select(copy_actions, {
+	vim.ui.select(copy_data, {
 		prompt = "Select what to copy:",
+		format_item = function(item)
+			return item.name
+		end,
 	}, function(choice)
-		local remote_dir
-		local build_output
-		if choice == COREASSEMBLIES then
-			remote_dir = string.format("%s/%s/CoreBuild/StandardBuild_Data/Managed", remote_base_dir, version)
-			build_output = "../CoreAssemblies/BuildOutputCoreDevelopment/*"
-		elseif choice == COREASSEMBLIESCII then
-			remote_dir = string.format("%s/%s/CoreBuild/StandardBuild_Data/Managed", remote_base_dir, version)
-			build_output = "../CoreAssemblies/BuildOutputCoreDevelopmentCII/*"
-		elseif choice == COREASSEMBLIESHHR then
-			remote_dir = string.format("%s/%s/CoreBuild/StandardBuild_Data/Managed", remote_base_dir, version)
-			build_output = "../CoreAssemblies/BuildOutputCoreDevelopmentHHR/*"
-		elseif choice == COREASSEMBLIESETABS then
-			remote_dir = string.format("%s/%s/CoreBuild/StandardBuild_Data/Managed", remote_base_dir, version)
-			build_output = "../CoreAssemblies/BuildOutputCoreDevelopmentETabs/*"
-		elseif choice == COREFULL then
-			remote_dir = string.format("%s/%s/CoreBuild", remote_base_dir, version)
-			build_output = "../CorePresentation/CorePresentationLinuxDebug/*"
-		elseif choice == EPC then
-			remote_dir = string.format("%s", remote_base_dir)
-			build_output = "GameServer_Kit/Setup/Intermediate/*"
-		elseif choice == SQL then
-			remote_dir = string.format("%s/SQL", remote_base_dir)
-			build_output = "Common_Dependencies/SQL/*"
-		end
 		local ip = vim.fn.input("Enter IP to copy to: ")
 		if ip == "" then
 			error("No IP Provided")
 		end
 		shell.do_async_cmd_with_window(
-			string.format("scp -rv %s %s@%s:%s", build_output, user, ip, remote_dir),
-			{ auto_close = true }
+			string.format("scp -r %s/* %s@%s:%s/", choice.build_output, choice.user, ip, choice.remote_dir),
+			{ auto_close = true, pty = true },
+			{ title = choice.title }
 		)
 	end)
 end

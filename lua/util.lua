@@ -38,11 +38,4 @@ function util.tokenize(inputstr, sep)
 	return t
 end
 
--- wrapper around vim.notify
-function util.print(msg, level, opts)
-	vim.schedule(function()
-		vim.notify(msg, level, opts)
-	end)
-end
-
 return util
