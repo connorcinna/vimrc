@@ -51,7 +51,7 @@ end)
 
 -- copy full path current directory to external clipboard
 local function getcwd()
-    if vim.fn.has("win32") then
+    if vim.fn.has("win32") == 1 then
         return vim.system({ "powershell.exe", "-NoProfile", "-Command", "pwd | Select-Object -ExpandProperty Path" })
             :wait().stdout
     else

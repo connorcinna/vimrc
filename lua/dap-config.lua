@@ -53,4 +53,60 @@ if WorkConfig.enabled then
             return string.format("%s:%d", ip, port)
         end,
     })
+else
+    -- C++
+    dap.adapters.cppdbg = {
+        id = 'cppdbg',
+        type = 'executable',
+        -- Adjust this path if Mason installs binaries elsewhere on your environment
+        command = vim.fn.stdpath('data') .. '/mason/bin/OpenDebugAD7',
+    }
+    local config = {
+        {
+            name = "Launch executable (Legacy GDB)",
+            type = "cppdbg",
+            request = "launch",
+            program = function()
+                return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+            end,
+            cwd = '${workspaceFolder}',
+            stopOnEntry = false,
+            MIMode = 'gdb',
+            miDebuggerPath = '/usr/bin/gdb',
+            setupCommands = {
+                {
+                    text = '-enable-pretty-printing',
+                    description = 'enable pretty printing',
+                    ignoreFailures = true
+                },
+            },
+        },
+        {
+            name = "Attach to PID (Legacy GDB)",
+            type = "cppdbg",
+            request = "attach",
+            program = function()
+                return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+            end,
+            processId = function()
+                local filter = vim.fn.input("Process filter: ")
+                return require("dap.utils").pick_process({ filter = filter })
+            end,
+            cwd = '${workspaceFolder}',
+            stopOnEntry = false,
+            MIMode = 'gdb',
+            miDebuggerPath = '/usr/bin/gdb',
+            setupCommands = {
+                {
+                    text = '-enable-pretty-printing',
+                    description = 'enable pretty printing',
+                    ignoreFailures = true
+                },
+            }
+        }
+    }
+
+    -- Apply the configuration to both C and C++
+    dap.configurations.c = config
+    dap.configurations.cpp = config
 end
