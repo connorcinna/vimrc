@@ -69,10 +69,12 @@ local function _checkupdates(buf_id, win_id)
 end
 
 local function status()
+	win_config.title = "SVN Status"
 	shell.do_async_cmd_with_window("svn status", { auto_close = false, enter = true }, win_config)
 end
 
 local function info()
+	win_config.title = "SVN Info"
 	shell.do_async_cmd_with_window("svn info", { auto_close = false, enter = true }, win_config)
 end
 
@@ -81,7 +83,6 @@ local function checkupdates(opts)
 end
 
 local function commit()
-	-- _checkupdates()
 	local buf = vim.api.nvim_create_buf(false, true)
 	win_config.title = "SVN Commit"
 	local win = vim.api.nvim_open_win(buf, true, win_config)

@@ -1,4 +1,5 @@
 WorkConfig = require("work_config")
+-- MUST load options before plugins so that `mapleader` is set
 require("options")
 require("plugins")
 require("clipboard")
@@ -10,4 +11,5 @@ require("dap-config")
 require("formatter")
 require("snippets")
 require("keybinds")
+require("mylualine")
 require("windows")

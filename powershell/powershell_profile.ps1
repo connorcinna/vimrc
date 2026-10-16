@@ -1,4 +1,5 @@
 $env:PATH += ";C:\Users\ccummings\.local\bin"
+$env:PATH += ";C:\Users\ccummings\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\Scripts"
 $env:VIMDIR = "C:\Users\ccummings\AppData\Local\nvim"
 $env:VIMVCDIR = "C:\projects\configvim"
 

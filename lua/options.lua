@@ -4,7 +4,7 @@ vim.api.nvim_set_hl(0, "LineNrAbove", { fg = "#bcbcbc", bold = true })
 vim.api.nvim_set_hl(0, "LineNr", { fg = "#bcbcbc", bold = true })
 vim.api.nvim_set_hl(0, "LineNrBelow", { fg = "#bcbcbc", bold = true })
 
-vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappings are correct
+vim.g.mapleader = " "
 vim.cmd([[set relativenumber]])
 vim.cmd([[set nohls]])
 vim.cmd([[set noea]])
@@ -12,6 +12,11 @@ vim.cmd("filetype plugin indent on")
 vim.cmd([[hi clear MatchParen]])
 vim.o.background = "dark"
 vim.opt.autoindent = true
+vim.opt.fillchars = {
+	vert = "│",
+	horiz = "─",
+	eob = " ",
+}
 vim.o.clipboard = "unnamedplus"
 vim.opt.termguicolors = true
 vim.o.background = "dark"

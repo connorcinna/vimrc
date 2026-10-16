@@ -53,23 +53,21 @@ require("lazy").setup({
 	"sjl/gundo.vim",
 	"tpope/vim-dispatch",
 	"godlygeek/tabular",
-	"vim-airline/vim-airline",
 	{
-		"vim-airline/vim-airline-themes",
-		config = function()
-			vim.cmd([[let g:airline_theme='minimalist']])
-		end,
+		"nvim-lualine/lualine.nvim",
+		dependencies = { "nvim-tree/nvim-web-devicons" },
 	},
 	"slugbyte/lackluster.nvim",
 	"aikhe/fleur.nvim",
 	"rktjmp/lush.nvim",
 	{
-		"2giosangmitom/nightfall.nvim",
+		"oxidescheme/nvim",
+		name = "oxide",
 		lazy = false,
-		opts = {},
-		config = function(_, opts)
-			require("nightfall").setup(opts)
-			vim.cmd.colorscheme("maron")
+		priority = 1000,
+		config = function()
+			require("oxide").setup()
+			vim.cmd.colorscheme("oxide")
 		end,
 	},
 	{ "akinsho/git-conflict.nvim", version = "*", config = true },
@@ -145,3 +143,5 @@ local config = {
 require("nvim-tree").setup(config)
 require("dapui").setup()
 vim.notify = require("notify")
+
+vim.cmd.colorscheme("oxide")

@@ -90,6 +90,13 @@ function build.copy()
 		if ip == "" then
 			error("No IP Provided")
 		end
+		if choice.user == "cjdev" then
+			vim.env.SSH_ASKPASS = "C:\\Users\\ccummings\\.ssh\\cjdevpass.bat"
+			vim.env.SSH_ASKPASS_REQUIRE = "force"
+		elseif choice.user == "root" then
+			vim.env.SSH_ASKPASS = "C:\\Users\\ccummings\\.ssh\\rootpass.bat"
+			vim.env.SSH_ASKPASS_REQUIRE = "force"
+		end
 		shell.do_async_cmd_with_window(
 			string.format("scp -r %s/* %s@%s:%s/", choice.build_output, choice.user, ip, choice.remote_dir),
 			{ auto_close = true, pty = true },

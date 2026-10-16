@@ -52,12 +52,11 @@ require("lualine").setup({
 	options = {
 		component_separators = "",
 		section_separators = "",
-		globalstatus = false,
 		refresh = {
 			statusline = 2000,
 		},
 	},
-
+	globalstatus = true,
 	sections = {
 		lualine_a = { "mode" },
 		lualine_b = { svnstatus, "branch", "diff", "diagnostics" },
