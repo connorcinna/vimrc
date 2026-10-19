@@ -45,7 +45,7 @@ local function svnstatus()
 	for _, k in ipairs(keys) do
 		table.insert(parts, "%#" .. bold .. "#" .. k .. "%#" .. base .. "#: " .. svn_counts[k])
 	end
-	return "🐢 " .. table.concat(parts, " ")
+	return " " .. table.concat(parts, " ")
 end
 
 require("lualine").setup({
@@ -59,13 +59,21 @@ require("lualine").setup({
 	globalstatus = true,
 	sections = {
 		lualine_a = { "mode" },
-		lualine_b = { svnstatus, "branch", "diff", "diagnostics" },
+		lualine_b = { svnstatus, {'branch', icon = ''}, "diff", "diagnostics" },
 		lualine_c = { { "filename", path = 1 } },
 		lualine_x = {
+            'encoding',
+            'fileformat',
+            'filetype',
 			-- LSP status
 			{
 				function()
-					return "󰒋"
+                    local line = "󰒋"
+					local clients = vim.lsp.get_clients({ bufnr = 0 })
+					if #clients > 0 then
+                        line = line .. " " .. clients[0].name
+					end
+					return line
 				end,
 				color = function()
 					local clients = vim.lsp.get_clients({ bufnr = 0 })
