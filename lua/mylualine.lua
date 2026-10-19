@@ -1,6 +1,7 @@
 local svn_counts = nil
 local svn_running = false
 
+
 local function bold_hl()
 	local suffix = require("lualine.highlight").get_mode_suffix() -- e.g. "_normal"
 	local base = "lualine_b" .. suffix
@@ -10,6 +11,8 @@ local function bold_hl()
 	vim.api.nvim_set_hl(0, bold, hl)
 	return bold, base
 end
+
+local bold, base = bold_hl()
 
 local function svnstatus()
 	if not vim.uv.fs_stat(".svn") then
@@ -38,7 +41,6 @@ local function svnstatus()
 		return ""
 	end
 
-	local bold, base = bold_hl()
 	local keys = vim.tbl_keys(svn_counts)
 	table.sort(keys)
 	local parts = {}
