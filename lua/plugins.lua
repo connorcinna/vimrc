@@ -71,6 +71,24 @@ require("lazy").setup({
 		end,
 	},
 	{ "akinsho/git-conflict.nvim", version = "*", config = true },
+	{
+		"OXY2DEV/markview.nvim",
+		lazy = false,
+		preview = {
+			icon_provider = "devicons",
+		},
+	},
+	{
+		"goolord/alpha-nvim",
+		config = function()
+			require("alpha").setup(require("alpha.themes.dashboard").config)
+			vim.api.nvim_create_autocmd("TabNewEntered", {
+				callback = function()
+					require("alpha").start()
+				end,
+			})
+		end,
+	},
 	"ntpeters/vim-better-whitespace",
 	-- snippets and autocomplete
 	"L3MON4D3/LuaSnip",

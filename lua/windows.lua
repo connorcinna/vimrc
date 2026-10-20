@@ -8,6 +8,10 @@ if vim.fn.has("win32") == 1 then
 		vim.opt.rtp:append(vim.fn.stdpath("config") .. "C:/Users/ccummings/AppData/Local/nvim/runtime")
 		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
 		vim.env.RBTOOLS_CONFIG_PATH = "C:\\Users\\ccummings"
+		vim.env.PS_PROFILE =
+			"C:\\Users\\ccummings\\OneDrive - AGS LLC\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1"
+		vim.env.GLAZEWM = "C:\\Users\\ccummings\\.glzr\\config.yaml"
+		vim.env.YAZI = "C:\\Users\\ccummings\\AppData\\Roaming\\yazi\\config\\yazi.toml"
 		vim.api.nvim_set_current_dir("C:\\projects\\")
 	end
 end
