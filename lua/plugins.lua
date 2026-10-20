@@ -15,9 +15,23 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
 	"nvim-lua/plenary.nvim",
-	"nvim-telescope/telescope.nvim",
-	"nvim-telescope/telescope-dap.nvim",
-	"nvim-telescope/telescope-ui-select.nvim",
+    {
+        "nvim-telescope/telescope.nvim",
+        dependencies = {
+            "nvim-telescope/telescope-dap.nvim",
+            "nvim-telescope/telescope-ui-select.nvim",
+        },
+        config = function()
+            local telescope = require("telescope")
+            telescope.setup({
+                extensions = {
+                    require("telescope.themes").get_dropdown({}),
+                },
+            })
+            telescope.load_extension("dap")
+            telescope.load_extension("ui-select")
+        end,
+    },
 	{
 		"seblj/roslyn.nvim",
 		ft = "cs",
@@ -32,18 +46,31 @@ require("lazy").setup({
 	{
 		"rcarriga/nvim-dap-ui",
 		dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
+        -- same as defaults, minus repl
         opts = {
             layouts = {
-                elements = { "console" },
-                size = 0.25,
-                position = "bottom",
+                {
+                    elements = {
+                        { id = "scopes", size = 0.25 },
+                        { id = "breakpoints", size = 0.25 },
+                        { id = "stacks", size = 0.25 },
+                        { id = "watches", size = 0.25 },
+                    },
+                    size = 40,
+                    position = "left",
+                },
+                {
+                    elements = { "console" },
+                    size = 0.25,
+                    position = "bottom",
+                },
             },
             controls = {
-                element = "repl",
+                element = "console",
                 enabled = false,
             },
         },
-        config = function(opts)
+        config = function(_, opts)
             require("dapui").setup(opts)
         end,
 	},
@@ -62,6 +89,30 @@ require("lazy").setup({
 	"tmhedberg/matchit",
 	{
 		"nvim-tree/nvim-tree.lua",
+        opts = {
+            sync_root_with_cwd = true,
+            filesystem_watchers = {
+                enable = false,
+            },
+            auto_reload_on_write = false,
+            reload_on_bufenter = true,
+            hijack_directories = {
+                enable = false,
+                auto_open = false,
+            },
+            tab = {
+                sync = {
+                    open = true,
+                    close = true,
+                },
+            },
+            git = {
+                enable = false,
+            },
+        },
+        config = function(_, opts)
+            require("nvim-tree").setup(opts)
+        end,
 	},
 	"mileszs/ack.vim",
 	"sjl/gundo.vim",
@@ -141,38 +192,4 @@ require("lazy").setup({
 	},
 })
 
--- telescope
-require("telescope").setup({
-	extensions = {
-		require("telescope.themes").get_dropdown({}),
-	},
-})
-require("telescope").load_extension("dap")
-require("telescope").load_extension("ui-select")
-
--- nvim-tree config
-local config = {
-	sync_root_with_cwd = true,
-	filesystem_watchers = {
-		enable = false,
-	},
-	auto_reload_on_write = false,
-	reload_on_bufenter = true,
-	hijack_directories = {
-		enable = false,
-		auto_open = false,
-	},
-	tab = {
-		sync = {
-			open = true,
-			close = true,
-		},
-	},
-	git = {
-		enable = false,
-	},
-}
-require("nvim-tree").setup(config)
 vim.notify = require("notify")
-
-vim.cmd.colorscheme("oxide")

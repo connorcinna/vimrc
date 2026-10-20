@@ -131,7 +131,24 @@ else
                 return (path and path ~= "") and path or dap.ABORT
             end,
             runtimeExecutable="php",
+            port = 0,
+            runtimeArgs = {
+                '-dxdebug.mode=debug',
+                '-dxdebug.start_with_request=yes',
+                '-dxdebug.client_host=127.0.0.1',
+                '-dxdebug.client_port=${port}',
+                '-dxdebug.remote_enable=1',
+                '-dxdebug.remote_autostart=1',
+                '-dxdebug.remote_host=127.0.0.1',
+                '-dxdebug.remote_port=${port}',
+            },
             console = 'integratedTerminal',
+        },
+        {
+            name = "listen for Xdebug",
+            type = "php",
+            request = "launch",
+            port = 9003,
         },
     }
 
