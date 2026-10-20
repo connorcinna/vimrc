@@ -61,7 +61,7 @@ else
         -- Adjust this path if Mason installs binaries elsewhere on your environment
         command = vim.fn.stdpath('data') .. '/mason/bin/OpenDebugAD7',
     }
-    local config = {
+    local cpp_config = {
         {
             name = "Launch executable (Legacy GDB)",
             type = "cppdbg",
@@ -107,6 +107,32 @@ else
     }
 
     -- Apply the configuration to both C and C++
-    dap.configurations.c = config
-    dap.configurations.cpp = config
+    dap.configurations.c = cpp_config
+    dap.configurations.cpp = cpp_config
+
+    -- PHP
+    dap.adapters.php = {
+        type = 'executable',
+        command = 'node',
+        args = { vim.fn.stdpath('data') .. '/mason/packages/php-debug-adapter/extension/out/phpDebug.js' } ,
+    }
+    dap.configurations.php = {
+        {
+            name = "run current script",
+            type = "php",
+            request = "launch",
+            cwd="${workspaceFolder}",
+            program = function()
+                local path = vim.fn.input({
+                    prompt = 'Path to executable: ',
+                    default = vim.fn.getcwd() .. '/',
+                    completion = 'file',
+                })
+                return (path and path ~= "") and path or dap.ABORT
+            end,
+            runtimeExecutable="php",
+            console = 'integratedTerminal',
+        },
+    }
+
 end

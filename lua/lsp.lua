@@ -93,6 +93,7 @@ if WorkConfig.enabled then
             "rust_analyzer",
             "lua_ls",
             "pyright",
+            "intelephense",
         },
     })
     require("mason-lspconfig").setup_handlers({
@@ -118,9 +119,10 @@ else
     require("mason-lspconfig").setup({
         ensure_installed = {
             "rust_analyzer",
-            -- "gopls",
+            "gopls",
             "pyright",
             "lua_ls",
+            "intelephense",
         },
         handlers = {
             function(server_name)
@@ -134,6 +136,19 @@ else
                             diagnostics = {
                                 globals = { "vim" },
                             },
+                        },
+                    },
+                })
+            end,
+            ["intelephense"] = function()
+                local lspconfig = require("lspconfig")
+                lspconfig.intelephense.setup({
+                    root_dir = function()
+                        return vim.fs.root(0, {'.svn'})
+                    end,
+                    settings = {
+                        intelephense = {
+                            root_markers = {".svn", ".git"}
                         },
                     },
                 })

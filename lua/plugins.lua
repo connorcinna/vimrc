@@ -31,7 +31,21 @@ require("lazy").setup({
 	"theHamsta/nvim-dap-virtual-text",
 	{
 		"rcarriga/nvim-dap-ui",
-		dependencies = { "nvim-neotest/nvim-nio" },
+		dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
+        opts = {
+            layouts = {
+                elements = { "console" },
+                size = 0.25,
+                position = "bottom",
+            },
+            controls = {
+                element = "repl",
+                enabled = false,
+            },
+        },
+        config = function(opts)
+            require("dapui").setup(opts)
+        end,
 	},
 	"rcarriga/nvim-notify",
 	"tpope/vim-repeat",
@@ -159,7 +173,6 @@ local config = {
 	},
 }
 require("nvim-tree").setup(config)
-require("dapui").setup()
 vim.notify = require("notify")
 
 vim.cmd.colorscheme("oxide")
