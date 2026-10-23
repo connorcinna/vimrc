@@ -15,23 +15,29 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
 	"nvim-lua/plenary.nvim",
-    {
-        "nvim-telescope/telescope.nvim",
-        dependencies = {
-            "nvim-telescope/telescope-dap.nvim",
-            "nvim-telescope/telescope-ui-select.nvim",
-        },
-        config = function()
-            local telescope = require("telescope")
-            telescope.setup({
-                extensions = {
-                    require("telescope.themes").get_dropdown({}),
-                },
-            })
-            telescope.load_extension("dap")
-            telescope.load_extension("ui-select")
-        end,
-    },
+	{
+		"nvim-telescope/telescope.nvim",
+		dependencies = {
+			"nvim-telescope/telescope-dap.nvim",
+			"nvim-telescope/telescope-ui-select.nvim",
+			"nvim-telescope/telescope-fzy-native.nvim",
+		},
+		config = function()
+			local telescope = require("telescope")
+			telescope.setup({
+				extensions = {
+					require("telescope.themes").get_dropdown({}),
+					fzy_native = {
+						override_generic_sorter = false,
+						override_file_sorter = true,
+					},
+				},
+			})
+			telescope.load_extension("dap")
+			telescope.load_extension("ui-select")
+			telescope.load_extension("fzy_native")
+		end,
+	},
 	{
 		"seblj/roslyn.nvim",
 		ft = "cs",
@@ -46,33 +52,33 @@ require("lazy").setup({
 	{
 		"rcarriga/nvim-dap-ui",
 		dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
-        -- same as defaults, minus repl
-        opts = {
-            layouts = {
-                {
-                    elements = {
-                        { id = "scopes", size = 0.25 },
-                        { id = "breakpoints", size = 0.25 },
-                        { id = "stacks", size = 0.25 },
-                        { id = "watches", size = 0.25 },
-                    },
-                    size = 40,
-                    position = "left",
-                },
-                {
-                    elements = { "console" },
-                    size = 0.25,
-                    position = "bottom",
-                },
-            },
-            controls = {
-                element = "console",
-                enabled = false,
-            },
-        },
-        config = function(_, opts)
-            require("dapui").setup(opts)
-        end,
+		-- same as defaults, minus repl
+		opts = {
+			layouts = {
+				{
+					elements = {
+						{ id = "scopes", size = 0.25 },
+						{ id = "breakpoints", size = 0.25 },
+						{ id = "stacks", size = 0.25 },
+						{ id = "watches", size = 0.25 },
+					},
+					size = 40,
+					position = "left",
+				},
+				{
+					elements = { "console" },
+					size = 0.25,
+					position = "bottom",
+				},
+			},
+			controls = {
+				element = "console",
+				enabled = false,
+			},
+		},
+		config = function(_, opts)
+			require("dapui").setup(opts)
+		end,
 	},
 	"rcarriga/nvim-notify",
 	"tpope/vim-repeat",
@@ -89,30 +95,30 @@ require("lazy").setup({
 	"tmhedberg/matchit",
 	{
 		"nvim-tree/nvim-tree.lua",
-        opts = {
-            sync_root_with_cwd = true,
-            filesystem_watchers = {
-                enable = false,
-            },
-            auto_reload_on_write = false,
-            reload_on_bufenter = true,
-            hijack_directories = {
-                enable = false,
-                auto_open = false,
-            },
-            tab = {
-                sync = {
-                    open = true,
-                    close = true,
-                },
-            },
-            git = {
-                enable = false,
-            },
-        },
-        config = function(_, opts)
-            require("nvim-tree").setup(opts)
-        end,
+		opts = {
+			sync_root_with_cwd = true,
+			filesystem_watchers = {
+				enable = false,
+			},
+			auto_reload_on_write = false,
+			reload_on_bufenter = true,
+			hijack_directories = {
+				enable = false,
+				auto_open = false,
+			},
+			tab = {
+				sync = {
+					open = true,
+					close = true,
+				},
+			},
+			git = {
+				enable = false,
+			},
+		},
+		config = function(_, opts)
+			require("nvim-tree").setup(opts)
+		end,
 	},
 	"mileszs/ack.vim",
 	"sjl/gundo.vim",

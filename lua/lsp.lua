@@ -93,18 +93,17 @@ end
 require("mason-lspconfig").setup({
 	ensure_installed = {
 		"rust_analyzer",
-		"gopls",
+		-- "gopls",
 		"pyright",
 		"lua_ls",
 		"intelephense",
 	},
 	handlers = {
 		function(server_name)
-			require("lspconfig")[server_name].setup({})
+			vim.lsp.config(server_name).setup({})
 		end,
 		["lua_ls"] = function()
-			local lspconfig = require("lspconfig")
-			lspconfig.lua_ls.setup({
+			vim.lsp.config("lua_ls", {
 				settings = {
 					Lua = {
 						diagnostics = {
@@ -115,8 +114,7 @@ require("mason-lspconfig").setup({
 			})
 		end,
 		["intelephense"] = function()
-			local lspconfig = require("lspconfig")
-			lspconfig.intelephense.setup({
+			vim.lsp.config("intelephense", {
 				root_dir = function()
 					return vim.fs.root(0, { ".svn" })
 				end,

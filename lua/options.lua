@@ -22,6 +22,7 @@ vim.opt.termguicolors = true
 vim.o.background = "dark"
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
+vim.g.loaded_matchparen = 1
 
 vim.cmd([[set shiftwidth=4]])
 vim.cmd([[set tabstop=4 ]])
