@@ -6,44 +6,8 @@ vim.lsp.config("*", {
 	root_markers = { ".git", ".svn" },
 	capabilities = capabilities,
 })
-require("mason").setup()
 if WorkConfig.enabled then
-	local roslyn_dir = vim.fs.joinpath(vim.fn.stdpath("config"), "bin", "lib", "net9.0")
-
-	-- patch roslyn to work with 3dplayer
-	local function patch_buildhost_config()
-		local cfg = vim.fs.joinpath(
-			roslyn_dir,
-			"BuildHost-net472",
-			"Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe.config"
-		)
-		if vim.fn.filereadable(cfg) == 0 then
-			return
-		end
-		local lines = vim.fn.readfile(cfg)
-		local id
-		for i, line in ipairs(lines) do
-			if line:find('name="System.Threading.Tasks.Extensions"', 1, true) then
-				id = i
-				break
-			end
-		end
-		if not id then
-			return -- redirect already gone; nothing to do
-		end
-		local first, last = id, id
-		while first > 1 and not lines[first]:find("<assemblyBinding", 1, true) do
-			first = first - 1
-		end
-		while last < #lines and not lines[last]:find("</assemblyBinding>", 1, true) do
-			last = last + 1
-		end
-		for _ = first, last do
-			table.remove(lines, first)
-		end
-		vim.fn.writefile(lines, cfg)
-	end
-	pcall(patch_buildhost_config)
+	local roslyn_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "packages", "roslyn", "libexec")
 
 	vim.lsp.config("roslyn", {
 		cmd = {
@@ -76,6 +40,7 @@ if WorkConfig.enabled then
 		end,
 		on_attach = function(client, _)
 			local root = client.config.root_dir
+			vim.notify("root: " .. root)
 			if not root then
 				return
 			end
@@ -83,23 +48,23 @@ if WorkConfig.enabled then
 				return name:match("%.sln$")
 			end, { path = root, upward = true, type = "file", limit = 1 })[1]
 			if sln then
+				vim.notify("solution/open")
 				client:notify("solution/open", { solution = vim.uri_from_fname(sln) })
 			end
 		end,
 	})
 	vim.lsp.enable("roslyn")
 end
-
 require("mason-lspconfig").setup({
 	ensure_installed = {
 		"rust_analyzer",
-		-- "gopls",
 		"pyright",
 		"lua_ls",
 		"intelephense",
 	},
 	handlers = {
 		function(server_name)
+			vim.notify("setting up " .. server_name)
 			vim.lsp.config(server_name).setup({})
 		end,
 		["lua_ls"] = function()

@@ -5,7 +5,6 @@ if vim.fn.has("win32") == 1 then
 	vim.o.shellpipe = "> %s 2>&1"
 	vim.cmd([[set shellquote= shellxquote=]])
 	if WorkConfig.enabled then
-		-- vim.opt.rtp:append(vim.fn.stdpath("config") .. "C:\\Users\\ccummings\\AppData\\Local\\nvim\\runtime")
 		vim.opt.rtp:prepend("C:\\Users\\ccummings\\AppData\\local\\nvim\\share\\nvim\\runtime")
 		vim.env.TEMP = "C:\\Users\\ccummings\\AppData\\Local\\Temp"
 		vim.env.RBTOOLS_CONFIG_PATH = "C:\\Users\\ccummings"

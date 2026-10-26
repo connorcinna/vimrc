@@ -171,7 +171,14 @@ require("lazy").setup({
 	"hrsh7th/nvim-cmp",
 	{
 		"williamboman/mason.nvim",
-		config = true,
+		config = function()
+			require("mason").setup({
+				registries = {
+					"github:Crashdummyy/mason-registry",
+					"github:mason-org/mason-registry",
+				},
+			})
+		end,
 	},
 	{
 		"khoido2003/roslyn-filewatch.nvim",
