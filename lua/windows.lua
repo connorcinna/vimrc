@@ -10,7 +10,7 @@ if vim.fn.has("win32") == 1 then
 		vim.env.RBTOOLS_CONFIG_PATH = "C:\\Users\\ccummings"
 		vim.env.PS_PROFILE =
 			"C:\\Users\\ccummings\\OneDrive - AGS LLC\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1"
-		vim.env.GLAZEWM = "C:\\Users\\ccummings\\.glzr\\config.yaml"
+		vim.env.GLAZEWM = "C:\\Users\\ccummings\\.glzr\\glazewm\\config.yaml"
 		vim.env.YAZI = "C:\\Users\\ccummings\\AppData\\Roaming\\yazi\\config\\yazi.toml"
 		vim.api.nvim_set_current_dir("C:\\projects\\")
 	end
