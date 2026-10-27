@@ -12,6 +12,7 @@ if vim.fn.has("win32") == 1 then
 			"C:\\Users\\ccummings\\OneDrive - AGS LLC\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1"
 		vim.env.GLAZEWM = "C:\\Users\\ccummings\\.glzr\\glazewm\\config.yaml"
 		vim.env.YAZI = "C:\\Users\\ccummings\\AppData\\Roaming\\yazi\\config\\yazi.toml"
+		vim.env.ALACRITTY = "C:\\Users\\ccummings\\AppData\\Roaming\\alacritty\\alacritty.toml"
 		vim.api.nvim_set_current_dir("C:\\projects\\")
 	end
 end

@@ -1,5 +1,3 @@
--- lsp
-
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 vim.lsp.config("*", {
@@ -40,7 +38,6 @@ if WorkConfig.enabled then
 		end,
 		on_attach = function(client, _)
 			local root = client.config.root_dir
-			vim.notify("root: " .. root)
 			if not root then
 				return
 			end
@@ -48,7 +45,6 @@ if WorkConfig.enabled then
 				return name:match("%.sln$")
 			end, { path = root, upward = true, type = "file", limit = 1 })[1]
 			if sln then
-				vim.notify("solution/open")
 				client:notify("solution/open", { solution = vim.uri_from_fname(sln) })
 			end
 		end,
@@ -62,33 +58,25 @@ require("mason-lspconfig").setup({
 		"lua_ls",
 		"intelephense",
 	},
-	handlers = {
-		function(server_name)
-			vim.notify("setting up " .. server_name)
-			vim.lsp.config(server_name).setup({})
-		end,
-		["lua_ls"] = function()
-			vim.lsp.config("lua_ls", {
-				settings = {
-					Lua = {
-						diagnostics = {
-							globals = { "vim" },
-						},
-					},
-				},
-			})
-		end,
-		["intelephense"] = function()
-			vim.lsp.config("intelephense", {
-				root_dir = function()
-					return vim.fs.root(0, { ".svn" })
-				end,
-				settings = {
-					intelephense = {
-						root_markers = { ".svn", ".git" },
-					},
-				},
-			})
-		end,
+})
+vim.lsp.config("lua_ls", {
+	settings = {
+		Lua = {
+			diagnostics = {
+				globals = { "vim" },
+			},
+		},
 	},
+})
+vim.lsp.config("intelephense", {
+	vim.lsp.config("intelephense", {
+		root_dir = function()
+			return vim.fs.root(0, { ".svn" })
+		end,
+		settings = {
+			intelephense = {
+				root_markers = { ".svn", ".git" },
+			},
+		},
+	}),
 })
