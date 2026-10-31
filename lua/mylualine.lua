@@ -1,7 +1,6 @@
 local svn_counts = nil
 local svn_running = false
 
-
 local function bold_hl()
 	local suffix = require("lualine.highlight").get_mode_suffix() -- e.g. "_normal"
 	local base = "lualine_b" .. suffix
@@ -61,19 +60,19 @@ require("lualine").setup({
 	globalstatus = true,
 	sections = {
 		lualine_a = { "mode" },
-		lualine_b = { svnstatus, {'branch', icon = ''}, "diff", "diagnostics" },
+		lualine_b = { svnstatus, { "branch", icon = "" }, "diff", "diagnostics" },
 		lualine_c = { { "filename", path = 1 } },
 		lualine_x = {
-            'encoding',
-            'fileformat',
-            'filetype',
+			"encoding",
+			"fileformat",
+			"filetype",
 			-- LSP status
 			{
 				function()
-                    local line = "󰒋"
+					local line = "󰒋"
 					local clients = vim.lsp.get_clients({ bufnr = 0 })
 					if #clients > 0 then
-                        line = line .. " " .. clients[0].name
+						line = line .. " " .. clients[0].name
 					end
 					return line
 				end,
@@ -111,9 +110,9 @@ require("lualine").setup({
 	inactive_sections = {
 		lualine_a = {},
 		lualine_b = {},
-		lualine_c = {},
-		lualine_x = {},
-		lualine_y = {},
+		lualine_c = { { "filename", path = 1 } },
+		lualine_x = { "encoding", "fileformat", "filetype", "location" },
+		lualine_y = { require("mssql").lualine_component },
 		lualine_z = {},
 	},
 	extensions = { "mason" },

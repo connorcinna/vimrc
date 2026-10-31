@@ -39,6 +39,51 @@ require("lazy").setup({
 		end,
 	},
 	{
+		"dmtrKovalenko/fff",
+		build = function()
+			-- downloads a prebuilt binary or falls back to cargo build
+			require("fff.download").download_or_build_binary()
+		end,
+		opts = {
+			debug = {
+				enabled = true,
+				show_scores = true,
+			},
+		},
+		lazy = false, -- the plugin lazy-initialises itself
+		keys = {
+			{
+				"<Leader>f",
+				function()
+					require("fff").find_files()
+				end,
+				desc = "FFFind files",
+			},
+			{
+				"<Leader>fg",
+				function()
+					require("fff").live_grep()
+				end,
+				desc = "LiFFFe grep",
+			},
+			{
+				"fz",
+				function()
+					require("fff").live_grep({ grep = { modes = { "fuzzy", "plain" } } })
+				end,
+				desc = "Live fffuzy grep",
+			},
+			{
+				"<Leader>fw",
+				function()
+					require("fff").live_grep_under_cursor()
+				end,
+				mode = { "n", "x" },
+				desc = "Search current word / selection",
+			},
+		},
+	},
+	{
 		"seblj/roslyn.nvim",
 		ft = "cs",
 		opts = {
@@ -202,6 +247,17 @@ require("lazy").setup({
 	{
 		"stevearc/conform.nvim",
 		opts = {},
+	},
+	{
+		"Kurren123/mssql.nvim",
+		dependencies = { "folke/which-key.nvim" },
+		config = function()
+			require("mssql").setup({
+				keymap_prefix = "<leader>m",
+				max_rows = 50,
+				max_column_width = 50,
+			})
+		end,
 	},
 })
 
