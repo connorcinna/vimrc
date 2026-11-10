@@ -11,6 +11,7 @@ vim.cmd([[set noea]])
 vim.cmd("filetype plugin indent on")
 vim.cmd([[hi clear MatchParen]])
 vim.o.background = "dark"
+vim.o.timeoutlen = 300
 vim.opt.autoindent = true
 vim.opt.fillchars = {
 	vert = "│",

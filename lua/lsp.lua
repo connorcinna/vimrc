@@ -26,16 +26,8 @@ if WorkConfig.enabled then
 				dotnet_enable_references_code_lens = true,
 			},
 		},
-		filetypes = { "cs", "sln", "csproj" },
-		root_dir = function(bufnr, on_dir)
-			local fname = vim.api.nvim_buf_get_name(bufnr)
-			local sln = vim.fs.find(function(name)
-				return name:match("%.sln$")
-			end, { path = vim.fs.dirname(fname), upward = true, type = "file", limit = 1 })[1]
-			if sln then
-				on_dir(vim.fs.dirname(sln))
-			end
-		end,
+		filetypes = { "cs", "solution", "csproj" },
+		root_markers = { ".sln", ".svn", ".csproj" },
 		on_attach = function(client, _)
 			local root = client.config.root_dir
 			if not root then
@@ -69,14 +61,12 @@ vim.lsp.config("lua_ls", {
 	},
 })
 vim.lsp.config("intelephense", {
-	vim.lsp.config("intelephense", {
-		root_dir = function()
-			return vim.fs.root(0, { ".svn" })
-		end,
-		settings = {
-			intelephense = {
-				root_markers = { ".svn", ".git" },
-			},
+	root_dir = function()
+		return vim.fs.root(0, { ".svn" })
+	end,
+	settings = {
+		intelephense = {
+			root_markers = { ".svn", ".git" },
 		},
-	}),
+	},
 })
