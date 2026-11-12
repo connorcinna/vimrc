@@ -30,6 +30,7 @@ end
 
 -- update with '--accept postpone' and resolve in resolve()
 local function up()
+	win_config.title = string.format("svn up %s", vim.fn.getcwd())
 	shell.do_async_cmd_with_window("svn up --accept postpone", { auto_close = true, enter = false }, win_config)
 end
 
@@ -65,16 +66,18 @@ local function _checkupdates(buf_id, win_id)
 		vim.keymap.set("n", "u", function()
 			up()
 		end, { buffer = buf })
+	else
+		table.insert(update_table, 1, "No updates found, press 'q' to close window.")
 	end
 end
 
 local function status()
-	win_config.title = "SVN Status"
+	win_config.title = "svn status"
 	shell.do_async_cmd_with_window("svn status", { auto_close = false, enter = true }, win_config)
 end
 
 local function info()
-	win_config.title = "SVN Info"
+	win_config.title = "svn info"
 	shell.do_async_cmd_with_window("svn info", { auto_close = false, enter = true }, win_config)
 end
 
@@ -84,7 +87,7 @@ end
 
 local function commit()
 	local buf = vim.api.nvim_create_buf(false, true)
-	win_config.title = "SVN Commit"
+	win_config.title = "svn commit"
 	local win = vim.api.nvim_open_win(buf, true, win_config)
 	vim.api.nvim_buf_set_name(buf, "svn_commit")
 	vim.keymap.set("n", "q", function()
@@ -105,6 +108,7 @@ local function commit()
 end
 
 local function log()
+	win_config.title = string.format("svn log %s", vim.fn.getcwd())
 	shell.do_async_cmd_with_window("svn log", { auto_close = false, enter = true }, win_config)
 end
 
@@ -219,7 +223,12 @@ local function resolve()
 end
 
 local function blame()
-	vim.cmd("tabnew | r ! svn blame #")
+	local buf = vim.api.nvim_create_buf(false, true)
+	local path_to_this_file = vim.api.nvim_buf_get_name(0)
+	vim.api.nvim_open_win(buf, true, { split = "right", win = 0 })
+	local blametext = vim.system({ "svn", "blame", path_to_this_file }, { text = true }):wait().stdout
+	vim.api.nvim_buf_set_lines(buf, -1, -1, false, require("util").string_to_table(blametext))
+	vim.api.nvim_buf_set_name(buf, string.format("svn blame %s", path_to_this_file))
 end
 
 vim.api.nvim_create_user_command("SvnCommit", commit, {})

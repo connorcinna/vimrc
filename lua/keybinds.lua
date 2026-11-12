@@ -10,45 +10,51 @@ end, { noremap = true, silent = true, desc = "toggle tree" })
 vim.keymap.set("n", "<Leader>tf", function()
 	tree.find_file({ open = true, focus = true })
 end, { noremap = true, silent = true, desc = "tree find file" })
+
 -- LSP Keybinds
 vim.keymap.set(
 	"n",
 	"<Leader>lh",
 	":lua vim.diagnostic.open_float()<CR>",
-	{ noremap = true, silent = true, desc = "diagnostics popup" }
+	{ noremap = true, silent = true, desc = "LSP diagnostics" }
 )
 vim.keymap.set(
 	"n",
 	"<Leader>lo",
 	":lua vim.lsp.buf.hover()<CR>",
-	{ noremap = true, silent = true, desc = "hover actions" }
+	{ noremap = true, silent = true, desc = "LSP hover actions" }
 )
 vim.keymap.set(
 	"n",
 	"<Leader>lr",
 	":lua vim.lsp.buf.references()<CR>",
-	{ noremap = true, silent = true, desc = "find references" }
+	{ noremap = true, silent = true, desc = "LSP find references" }
 )
 vim.keymap.set(
 	"n",
 	"<Leader>ld",
 	":lua vim.lsp.buf.definition()<CR>",
-	{ noremap = true, silent = true, desc = "go to implementation" }
+	{ noremap = true, silent = true, desc = "LSP go to definition" }
 )
 vim.keymap.set(
 	"n",
 	"<Leader>li",
 	":lua vim.lsp.buf.implementation()<CR>",
-	{ noremap = true, silent = true, desc = "go to implementation" }
+	{ noremap = true, silent = true, desc = "LSP go to implementation" }
 )
-vim.keymap.set("n", "<Leader>ln", ":lua vim.lsp.buf.rename()<CR>", { noremap = true, silent = true, desc = "rename" })
+vim.keymap.set(
+	"n",
+	"<Leader>ln",
+	":lua vim.lsp.buf.rename()<CR>",
+	{ noremap = true, silent = true, desc = "LSP rename" }
+)
 
--- copy full path of current file to external clipboard
+-- useful file expansion keybinds
+
 vim.keymap.set("n", "<Leader>yp", function()
 	vim.fn.setreg("+", vim.fn.expand("%:p:."))
-end)
+end, { desc = "copy full path of current file to external clipboard" })
 
--- copy full path current directory to external clipboard
 local function getcwd()
 	if vim.fn.has("win32") == 1 then
 		return vim.system({ "powershell.exe", "-NoProfile", "-Command", "pwd | Select-Object -ExpandProperty Path" })
@@ -57,21 +63,25 @@ local function getcwd()
 		return vim.fn.expand("%:h")
 	end
 end
+
 vim.keymap.set("n", "<Leader>yd", function()
 	local pwd = getcwd()
 	vim.fn.setreg("+", pwd)
-end)
+end, { desc = "copy current working directory" })
 
--- copy current filename open without extension
 vim.keymap.set("n", "<Leader>yn", function()
 	vim.fn.setreg("+", vim.fn.expand("%:t:r"))
-end)
+end, { desc = "copy current filename open without extension" })
 
--- close tab
-vim.keymap.set("n", "<Leader>tc", ":tabclose!<CR>", { noremap = true, silent = true, desc = "tab close" })
--- new tab
-vim.keymap.set("n", "<Leader>tn", ":tabnew<CR>", { noremap = true, silent = true, desc = "tab new" })
--- open new tab with init.lua and change directory to it
+-- tab page management
+
+vim.keymap.set("n", "<Leader>tc", ":tabclose!<CR>", { noremap = true, silent = true, desc = "close tab" })
+
+vim.keymap.set("n", "<Leader>tn", function()
+	vim.api.nvim_open_tabpage(0, true)
+	require("alpha").start()
+end, { noremap = true, silent = true, desc = "new tab" })
+
 vim.keymap.set("n", "<Leader>oc", function()
 	vim.cmd("tabnew")
 	vim.cmd("tcd " .. vim.fs.dirname(vim.env.MYVIMRC))
@@ -79,6 +89,7 @@ vim.keymap.set("n", "<Leader>oc", function()
 end, { noremap = true, silent = true, desc = "open configuration dir" })
 
 -- work keybinds
+
 if WorkConfig.enabled then
 	-- build work projects
 	local build = require("build")
@@ -123,7 +134,6 @@ end, { desc = "Dap UI" })
 -- generic commands, not keybinds
 
 vim.api.nvim_create_user_command("WipeUnlisted", function()
-	local count = 0
 	for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
 		if not vim.bo[bufnr].buflisted then
 			vim.api.nvim_buf_delete(bufnr, { force = true })

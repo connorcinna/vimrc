@@ -50,7 +50,14 @@ require("lazy").setup({
 				show_scores = true,
 			},
 		},
+		config = function(_, opts)
+			require("fff").setup(opts)
+		end,
 		lazy = false, -- the plugin lazy-initialises itself
+		keymaps = {
+			toggle_select = "",
+			move_up = { "<Tab>", "<Up>" },
+		},
 		keys = {
 			{
 				"<Leader>f",
@@ -165,7 +172,7 @@ require("lazy").setup({
 			require("nvim-tree").setup(opts)
 		end,
 	},
-	"mileszs/ack.vim",
+	-- "mileszs/ack.vim",
 	"sjl/gundo.vim",
 	"tpope/vim-dispatch",
 	"godlygeek/tabular",
@@ -198,11 +205,6 @@ require("lazy").setup({
 		"goolord/alpha-nvim",
 		config = function()
 			require("alpha").setup(require("alpha.themes.dashboard").config)
-			vim.api.nvim_create_autocmd("TabNewEntered", {
-				callback = function()
-					require("alpha").start()
-				end,
-			})
 		end,
 	},
 	"ntpeters/vim-better-whitespace",
