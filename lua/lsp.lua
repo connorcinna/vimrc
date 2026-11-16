@@ -43,14 +43,6 @@ if WorkConfig.enabled then
 	})
 	vim.lsp.enable("roslyn")
 end
-require("mason-lspconfig").setup({
-	ensure_installed = {
-		"rust_analyzer",
-		"pyright",
-		"lua_ls",
-		"intelephense",
-	},
-})
 vim.lsp.config("lua_ls", {
 	settings = {
 		Lua = {
@@ -61,12 +53,31 @@ vim.lsp.config("lua_ls", {
 	},
 })
 vim.lsp.config("intelephense", {
-	root_dir = function()
-		return vim.fs.root(0, { ".svn" })
-	end,
 	settings = {
 		intelephense = {
 			root_markers = { ".svn", ".git" },
 		},
 	},
 })
+vim.lsp.config("pyright", {
+	settings = {
+		pyright = {
+			root_markers = { ".svn", ".git" },
+		},
+		python = {
+			analysis = {
+				strictParameterNoneValue = false,
+				diagnosticSeverityOverrides = {
+					reportOperatorIssue = false,
+					reportArgumentType = false,
+					reportInvalidTypeArguments = false,
+					reportPossiblyUnboundVariable = false,
+					reportOptionalMemberAccess = false,
+				},
+			},
+		},
+	},
+})
+vim.lsp.enable("lua_ls")
+vim.lsp.enable("intelephense")
+vim.lsp.enable("pyright")

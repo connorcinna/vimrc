@@ -133,9 +133,8 @@ require("lazy").setup({
 		config = true,
 	},
 	{
-		"williamboman/mason-lspconfig.nvim",
-		dependencies = { "mason-org/mason.nvim", opts = {} },
 		"neovim/nvim-lspconfig",
+		dependencies = { "mason-org/mason.nvim", opts = {} },
 	},
 	"tmhedberg/matchit",
 	{

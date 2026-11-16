@@ -10,38 +10,32 @@ end, { noremap = true, silent = true, desc = "toggle tree" })
 vim.keymap.set("n", "<Leader>tf", function()
 	tree.find_file({ open = true, focus = true })
 end, { noremap = true, silent = true, desc = "tree find file" })
+
 -- LSP Keybinds
-vim.keymap.set(
-	"n",
-	"<Leader>lh",
-	":lua vim.diagnostic.open_float()<CR>",
-	{ noremap = true, silent = true, desc = "diagnostics popup" }
-)
-vim.keymap.set(
-	"n",
-	"<Leader>lo",
-	":lua vim.lsp.buf.hover()<CR>",
-	{ noremap = true, silent = true, desc = "hover actions" }
-)
-vim.keymap.set(
-	"n",
-	"<Leader>lr",
-	":lua vim.lsp.buf.references()<CR>",
-	{ noremap = true, silent = true, desc = "find references" }
-)
-vim.keymap.set(
-	"n",
-	"<Leader>ld",
-	":lua vim.lsp.buf.definition()<CR>",
-	{ noremap = true, silent = true, desc = "go to implementation" }
-)
-vim.keymap.set(
-	"n",
-	"<Leader>li",
-	":lua vim.lsp.buf.implementation()<CR>",
-	{ noremap = true, silent = true, desc = "go to implementation" }
-)
-vim.keymap.set("n", "<Leader>ln", ":lua vim.lsp.buf.rename()<CR>", { noremap = true, silent = true, desc = "rename" })
+vim.keymap.set("n", "<Leader>lh", function()
+	vim.diagnostic.open_float()
+end, { noremap = true, silent = true, desc = "diagnostics popup" })
+vim.keymap.set("n", "<Leader>lo", function()
+	vim.lsp.buf.hover()
+end, { noremap = true, silent = true, desc = "hover actions" })
+vim.keymap.set("n", "<Leader>lr", function()
+	vim.lsp.buf.references()
+end, { noremap = true, silent = true, desc = "find references" })
+vim.keymap.set("n", "<Leader>ld", function()
+	vim.lsp.buf.definition()
+end, { noremap = true, silent = true, desc = "go to implementation" })
+vim.keymap.set("n", "<Leader>li", function()
+	vim.lsp.buf.implementation()
+end, { noremap = true, silent = true, desc = "go to implementation" })
+vim.keymap.set("n", "<Leader>ln", function()
+	vim.lsp.buf.rename()
+end, { noremap = true, silent = true, desc = "rename" })
+vim.keymap.set("n", "<Leader>lne", function()
+	vim.diagnostic.jump({ count = 1, float = true })
+end, { noremap = true, silent = true, desc = "goto next error" })
+vim.keymap.set("n", "<Leader>lpe", function()
+	vim.diagnostic.jump({ count = -1, float = true })
+end, { noremap = true, silent = true, desc = "goto last error" })
 
 -- copy full path of current file to external clipboard
 vim.keymap.set("n", "<Leader>yp", function()

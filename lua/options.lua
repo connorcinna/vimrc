@@ -28,3 +28,12 @@ vim.g.loaded_matchparen = 1
 vim.cmd([[set shiftwidth=4]])
 vim.cmd([[set tabstop=4 ]])
 vim.cmd([[set expandtab ]])
+
+--TODO make a linux config file similar to windows.lua
+-- if running as root, add linux_main_user config to rtp
+if vim.fn.has("win32") ~= 1 then
+    local linux_main_user = "cjdev"
+    if vim.uv.getuid() == 0 then
+        vim.opt.rtp:prepend(string.format("/home/%s/.local/share/nvim", linux_main_user))
+    end
+end

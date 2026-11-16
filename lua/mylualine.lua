@@ -63,6 +63,8 @@ require("lualine").setup({
 		lualine_b = { svnstatus, { "branch", icon = "" }, "diff", "diagnostics" },
 		lualine_c = { { "filename", path = 1 } },
 		lualine_x = {
+			"location",
+			"selectioncount",
 			"encoding",
 			"fileformat",
 			"filetype",
@@ -104,7 +106,7 @@ require("lualine").setup({
 				end,
 			},
 		},
-		lualine_y = {},
+		lualine_y = { require("mssql").lualine_component },
 		lualine_z = {},
 	},
 	inactive_sections = {
