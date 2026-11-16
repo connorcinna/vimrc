@@ -66,7 +66,7 @@ end, { desc = "copy current filename open without extension" })
 vim.keymap.set("n", "<Leader>tc", ":tabclose!<CR>", { noremap = true, silent = true, desc = "close tab" })
 
 vim.keymap.set("n", "<Leader>tn", function()
-	vim.api.nvim_open_tabpage(0, true)
+	vim.api.nvim_open_tabpage(0, true, { after = -1 })
 	require("alpha").start()
 end, { noremap = true, silent = true, desc = "new tab" })
 
