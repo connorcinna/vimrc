@@ -50,7 +50,14 @@ require("lazy").setup({
 				show_scores = true,
 			},
 		},
+		config = function(_, opts)
+			require("fff").setup(opts)
+		end,
 		lazy = false, -- the plugin lazy-initialises itself
+		keymaps = {
+			toggle_select = "",
+			move_up = { "<Tab>", "<Up>" },
+		},
 		keys = {
 			{
 				"<Leader>f",
@@ -83,6 +90,7 @@ require("lazy").setup({
 			},
 		},
 	},
+
 	{
 		"seblj/roslyn.nvim",
 		ft = "cs",

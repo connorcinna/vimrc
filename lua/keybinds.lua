@@ -37,12 +37,12 @@ vim.keymap.set("n", "<Leader>lpe", function()
 	vim.diagnostic.jump({ count = -1, float = true })
 end, { noremap = true, silent = true, desc = "goto last error" })
 
--- copy full path of current file to external clipboard
+-- useful file expansion keybinds
+
 vim.keymap.set("n", "<Leader>yp", function()
 	vim.fn.setreg("+", vim.fn.expand("%:p:."))
-end)
+end, { desc = "copy full path of current file to external clipboard" })
 
--- copy full path current directory to external clipboard
 local function getcwd()
 	if vim.fn.has("win32") == 1 then
 		return vim.system({ "powershell.exe", "-NoProfile", "-Command", "pwd | Select-Object -ExpandProperty Path" })
@@ -51,21 +51,25 @@ local function getcwd()
 		return vim.fn.expand("%:h")
 	end
 end
+
 vim.keymap.set("n", "<Leader>yd", function()
 	local pwd = getcwd()
 	vim.fn.setreg("+", pwd)
-end)
+end, { desc = "copy current working directory" })
 
--- copy current filename open without extension
 vim.keymap.set("n", "<Leader>yn", function()
 	vim.fn.setreg("+", vim.fn.expand("%:t:r"))
-end)
+end, { desc = "copy current filename open without extension" })
 
--- close tab
-vim.keymap.set("n", "<Leader>tc", ":tabclose!<CR>", { noremap = true, silent = true, desc = "tab close" })
--- new tab
-vim.keymap.set("n", "<Leader>tn", ":tabnew<CR>", { noremap = true, silent = true, desc = "tab new" })
--- open new tab with init.lua and change directory to it
+-- tab page management
+
+vim.keymap.set("n", "<Leader>tc", ":tabclose!<CR>", { noremap = true, silent = true, desc = "close tab" })
+
+vim.keymap.set("n", "<Leader>tn", function()
+	vim.api.nvim_open_tabpage(0, true)
+	require("alpha").start()
+end, { noremap = true, silent = true, desc = "new tab" })
+
 vim.keymap.set("n", "<Leader>oc", function()
 	vim.cmd("tabnew")
 	vim.cmd("tcd " .. vim.fs.dirname(vim.env.MYVIMRC))
@@ -73,6 +77,7 @@ vim.keymap.set("n", "<Leader>oc", function()
 end, { noremap = true, silent = true, desc = "open configuration dir" })
 
 -- work keybinds
+
 if WorkConfig.enabled then
 	-- build work projects
 	local build = require("build")
@@ -117,7 +122,6 @@ end, { desc = "Dap UI" })
 -- generic commands, not keybinds
 
 vim.api.nvim_create_user_command("WipeUnlisted", function()
-	local count = 0
 	for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
 		if not vim.bo[bufnr].buflisted then
 			vim.api.nvim_buf_delete(bufnr, { force = true })
