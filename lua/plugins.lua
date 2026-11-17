@@ -172,7 +172,6 @@ require("lazy").setup({
 			require("nvim-tree").setup(opts)
 		end,
 	},
-	"mileszs/ack.vim",
 	"sjl/gundo.vim",
 	"tpope/vim-dispatch",
 	"godlygeek/tabular",
@@ -257,7 +256,6 @@ require("lazy").setup({
 	},
 	{
 		"Kurren123/mssql.nvim",
-		dependencies = { "folke/which-key.nvim" },
 		config = function()
 			require("mssql").setup({
 				keymap_prefix = "<leader>m",
